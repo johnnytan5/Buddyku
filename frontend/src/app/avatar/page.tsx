@@ -170,7 +170,7 @@ export default function ChatbotPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white relative w-full">
+    <div className="flex flex-col min-h-screen bg-white relative w-full" style={{ overflow: 'hidden' }}>
       {/* Avatar and status */}
       <div className="w-full flex flex-col items-center pt-26 pb-2">
         <AzureAvatar
@@ -276,7 +276,7 @@ export default function ChatbotPage() {
               placeholder="Ask anything..."
               className="w-full resize-none border border-gray-300 rounded-2xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-transparent"
               rows={1}
-              style={{ minHeight: '48px', maxHeight: '120px' }}
+              style={{ minHeight: '48px', maxHeight: '120px', overflow: 'hidden' }}
             />
           </div>
           <div className="flex items-center space-x-2">

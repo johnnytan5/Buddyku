@@ -120,3 +120,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+.gradient-primary {
+  background: linear-gradient(135deg, oklch(0.8 0.06 320) 0%, oklch(0.75 0.08 300) 50%, oklch(0.7 0.15 280) 100%);
+}
