@@ -5,14 +5,82 @@ import { Mic, PhoneOff, X } from "lucide-react";
 import AzureAvatar from "@/components/avatar/AzureAvatar";
 import { useAzureAvatarEnhanced } from '@/hooks/useAzureAvatarEnhanced';
 
+
+// Helper to capture a frame from a video element as a JPEG Blob
+async function captureFrameAsJpeg(video: HTMLVideoElement): Promise<Blob | null> {
+    if (!video || video.readyState < 2) return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return new Promise(resolve => {
+        canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.92);
+    });
+}
+
 export default function VideoCallPage() {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [cameraError, setCameraError] = useState<string | null>(null);
     const [microphonePermission, setMicrophonePermission] = useState<"granted" | "denied" | "pending" | "unknown">("unknown");
     const [isAvatarSpeaking, setIsAvatarSpeaking] = useState(false);
-    // Message history state
     const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+    const [riskScore, setRiskScore] = useState<number | null>(null);
+    const [mood, setMood] = useState<string | null>(null);
+
+    // Periodically capture webcam image and send to mood endpoint
+    useEffect(() => {
+        let interval: NodeJS.Timeout | null = null;
+        async function sendFrame() {
+            if (videoRef.current && videoRef.current.readyState >= 2) {
+                const blob = await captureFrameAsJpeg(videoRef.current);
+                if (blob) {
+                    console.log(`[MoodAPI] Sending image at ${new Date().toISOString()} | size: ${blob.size} bytes`);
+                    const formData = new FormData();
+                    formData.append('file', blob, 'frame.jpg');
+                    let success = false;
+                    // Try primary endpoint
+                    try {
+                        const resp = await fetch('http://13.212.142.58/predict-mood', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        console.log(`[MoodAPI] Response status: ${resp.status}`);
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            if (typeof data.risk_score !== 'undefined') setRiskScore(data.risk_score);
+                            if (typeof data.mood !== 'undefined') setMood(data.mood);
+                            success = true;
+                        }
+                    } catch (err) {
+                        // Ignore error, will try fallback
+                    }
+                    // Fallback to backend if primary fails
+                    if (!success) {
+                        try {
+                            const resp2 = await fetch('/api/mood-detection', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            console.log(`[MoodAPI] Fallback /api/mood-detection status: ${resp2.status}`);
+                            if (resp2.ok) {
+                                const data2 = await resp2.json();
+                                console.log(`[MoodAPI] Fallback response data: ${JSON.stringify(data2)}`);
+                                if (typeof data2.risk_score !== 'undefined') setRiskScore(data2.risk_score);
+                                if (typeof data2.mood !== 'undefined') setMood(data2.mood);
+                            }
+                        } catch (err2) {
+                            // Ignore errors for now
+                        }
+                    }
+                }
+            }
+        }
+        interval = setInterval(sendFrame, 10000); // every 10 seconds
+        return () => { if (interval) clearInterval(interval); };
+    }, []);
 
     // Azure Avatar integration
     const {
@@ -32,24 +100,27 @@ export default function VideoCallPage() {
         handleAvatarError,
     } = useAzureAvatarEnhanced({
         onSpeechRecognized: async (text) => {
-            // When speech is recognized, send to /api/chat and speak the streamed response, with message history
+            // When speech is recognized, send to /api/chat and speak the streamed response, with message history and mood/risk
             if (text && text.trim()) {
-                // Add user message to history
                 setMessages(prev => [...prev, { role: "user", content: text }]);
                 try {
-                    // Prepare message history for API (excluding partial assistant responses)
                     const message_history = messages
                         .filter(msg => msg.role === "user" || (msg.role === "assistant" && msg.content.trim() !== ""))
                         .map(msg => ({ role: msg.role, content: msg.content }));
+                    const chatPayload: any = {
+                        message: text,
+                        message_history
+                    };
+                    console.log(`Risk score: ${riskScore}, mood: ${mood}`);
+                    if (riskScore !== null) chatPayload.risk_score = riskScore;
+                    if (mood !== null) chatPayload.mood = mood;
+
                     const res = await fetch("/api/chat", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
                         },
-                        body: JSON.stringify({
-                            message: text,
-                            message_history
-                        }),
+                        body: JSON.stringify(chatPayload),
                     });
                     if (!res.body) {
                         throw new Error("Response body is not a readable stream.");
@@ -57,7 +128,6 @@ export default function VideoCallPage() {
                     const reader = res.body.getReader();
                     const decoder = new TextDecoder("utf-8");
                     let assistantResponse = "";
-                    // Add a new assistant message (empty) to history for streaming
                     setMessages(prev => [...prev, { role: "assistant", content: "" }]);
                     let assistantIndex = -1;
                     setMessages(prev => {
@@ -69,9 +139,7 @@ export default function VideoCallPage() {
                         if (done) break;
                         const chunk = decoder.decode(value, { stream: true });
                         assistantResponse += chunk;
-                        // Update the last assistant message with the partial response
                         setMessages(prev => {
-                            // Find the last assistant message
                             const lastIdx = prev.map((m, i) => ({ ...m, i })).reverse().find(m => m.role === "assistant")?.i;
                             if (typeof lastIdx === "number") {
                                 const updated = [...prev];
@@ -81,7 +149,6 @@ export default function VideoCallPage() {
                             return prev;
                         });
                     }
-                    // Once the stream is complete, speak the full response
                     setTimeout(() => {
                         speakText(assistantResponse);
                     }, 100);
@@ -118,7 +185,6 @@ export default function VideoCallPage() {
                 stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
             }
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -265,4 +331,3 @@ export default function VideoCallPage() {
         </div>
     );
 }
-// ...existing code...
