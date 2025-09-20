@@ -32,17 +32,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white min-h-screen flex flex-col items-center justify-center`}
         style={{ margin: 0, paddingBottom: "64px" }}
       >
         <main className="max-w-md mx-auto">{children}</main>
         {/* Mobile Tab Bar - hidden on home page */}
         {!isHome && (
           <nav
-            className="fixed bottom-0 left-0 w-full max-w-md mx-auto flex justify-between items-center bg-gray-100 border-t border-gray-300 h-16 px-4"
+            className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md flex justify-between items-center bg-gray-100 border-t border-gray-300 h-16 px-4 z-50 shadow"
             style={{
-              zIndex: 50,
-              boxShadow: "0 -1px 8px rgba(0,0,0,0.05)",
+              boxShadow: "0 -1px 8px rgba(0,0,0,0.05)"
             }}
           >
             <Tab icon={<MessageCircleIcon size={24} />} label="Chat" href="/avatar" />
