@@ -469,7 +469,7 @@ export default function MemoryPage() {
       {/* Floating Action Button */}
       <button 
         onClick={() => setShowUploadModal(true)}
-        className="fixed bottom-6 right-6 bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-full shadow-lg transition-colors"
+        className="fixed bottom-20 right-6 bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-full shadow-lg transition-colors z-40"
       >
         <Plus size={24} />
       </button>
@@ -547,17 +547,17 @@ const EmergencyMemoryKit = ({
   const currentMemory = allFavorites[currentIndex];
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-purple-900/95 to-blue-900/95 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 bg-gradient-to-br from-purple-900/95 to-blue-900/95 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-2xl w-full max-w-sm sm:max-w-md max-h-[95vh] flex flex-col shadow-2xl mx-2">
         {/* Header */}
-        <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-6">
+        <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-4 sm:p-6 rounded-t-2xl flex-shrink-0">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-bold flex items-center">
-                <Heart className="mr-3" size={28} />
+              <h2 className="text-lg sm:text-2xl font-bold flex items-center">
+                <Heart className="mr-2 sm:mr-3" size={20} />
                 Your Emergency Kit
               </h2>
-              <p className="text-red-100 mt-1">
+              <p className="text-red-100 mt-1 text-sm sm:text-base">
                 Remember these beautiful moments. You are loved. You matter.
               </p>
             </div>
@@ -565,31 +565,31 @@ const EmergencyMemoryKit = ({
               onClick={onClose}
               className="p-2 hover:bg-white/20 rounded-lg transition-colors"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
           </div>
         </div>
 
         {allFavorites.length === 0 ? (
-          <div className="p-12 text-center">
-            <Heart size={64} className="mx-auto text-gray-300 mb-4" />
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">
+          <div className="p-6 sm:p-12 text-center flex-grow">
+            <Heart size={48} className="mx-auto text-gray-300 mb-4" />
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-600 mb-2">
               No favorite memories yet
             </h3>
-            <p className="text-gray-500 mb-6">
+            <p className="text-gray-500 mb-6 text-sm sm:text-base">
               Mark some of your happiest memories as favorites to create your emergency kit
             </p>
             <button
               onClick={onClose}
-              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              className="px-4 py-2 sm:px-6 sm:py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm sm:text-base"
             >
               Create Memories
             </button>
           </div>
         ) : (
-          <div className="p-6">
+          <div className="flex-grow overflow-auto p-4 sm:p-6">{/* Mobile-optimized scrollable container */}
             {/* Memory Counter */}
-            <div className="text-center mb-6">
+            <div className="text-center mb-4 sm:mb-6">
               <p className="text-sm text-gray-500">
                 Memory {currentIndex + 1} of {allFavorites.length}
               </p>
@@ -607,14 +607,13 @@ const EmergencyMemoryKit = ({
 
             {/* Memory Content */}
             {currentMemory && (
-              <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl p-6 mb-6">
+              <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
                 {/* Date Header */}
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-800">
                     {new Date(currentMemory.entryDate).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
+                      weekday: 'short',
+                      month: 'short',
                       day: 'numeric'
                     })}
                   </h3>
@@ -674,48 +673,53 @@ const EmergencyMemoryKit = ({
             )}
 
             {/* Navigation */}
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center gap-2">
               <button
                 onClick={prevMemory}
                 disabled={allFavorites.length <= 1}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                className="flex items-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-sm"
               >
-                <ChevronLeft size={20} />
-                Previous
+                <ChevronLeft size={16} />
+                <span className="hidden sm:inline">Previous</span>
+                <span className="sm:hidden">Prev</span>
               </button>
 
               <button
                 onClick={() => onSelectMemory(currentMemory.entryDate)}
-                className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                className="px-3 sm:px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm sm:text-base"
               >
-                View Full Entry
+                <span className="hidden sm:inline">View Full Entry</span>
+                <span className="sm:hidden">View</span>
               </button>
 
               <button
                 onClick={nextMemory}
                 disabled={allFavorites.length <= 1}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                className="flex items-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors text-sm"
               >
-                Next
-                <ChevronRight size={20} />
+                <span className="hidden sm:inline">Next</span>
+                <span className="sm:hidden">Next</span>
+                <ChevronRight size={16} />
               </button>
             </div>
           </div>
         )}
 
-        {/* Emergency Resources */}
-        <div className="bg-gray-50 p-6 border-t">
-          <div className="grid grid-cols-2 gap-4">
-            <button className="flex items-center justify-center gap-2 p-3 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors">
+        {/* Emergency Resources - Fixed at bottom */}
+        <div className="bg-gray-50 p-3 sm:p-6 border-t rounded-b-2xl flex-shrink-0">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4">
+            <button className="flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-sm sm:text-base">
               <span>📞</span>
-              Call Crisis Line
+              <span className="hidden sm:inline">Call Crisis Line</span>
+              <span className="sm:hidden">Crisis</span>
             </button>
-            <button className="flex items-center justify-center gap-2 p-3 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors">
-              <Heart size={16} />
-              Text Trusted Contact
+            <button className="flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors text-sm sm:text-base">
+              <Heart size={14} />
+              <span className="hidden sm:inline">Text Trusted Contact</span>
+              <span className="sm:hidden">Contact</span>
             </button>
           </div>
-          <p className="text-center text-xs text-gray-500 mt-3">
+          <p className="text-center text-xs text-gray-500 mt-2 sm:mt-3">
             You are not alone. Help is always available.
           </p>
         </div>
