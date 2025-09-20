@@ -61,10 +61,7 @@ export const useAzureAvatarEnhanced = ({
         
         const success = await avatarRef.current.speakText(text)
         clearTimeout(speakingTimeout)
-        
-        // Don't immediately stop speaking - let the avatar hook manage the duration
-        // The avatar hook will handle stopping the speaking state after the estimated duration
-        
+
         return success
       } else {
         // Fallback to browser speech synthesis
