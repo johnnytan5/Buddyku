@@ -28,6 +28,7 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
   const isHome = pathname === "/";
+  const isVideoCall = pathname === "/video-call";
 
   return (
     <html lang="en">
@@ -35,9 +36,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white min-h-screen flex flex-col items-center justify-center`}
         style={{ margin: 0, paddingBottom: "64px" }}
       >
+
         <main className={pathname === "/profile" ? "w-full" : "max-w-md mx-auto"}>{children}</main>
-        {/* Mobile Tab Bar - hidden on home page */}
-        {!isHome && (
+        {/* Mobile Tab Bar - hidden on home page and video call page */}
+        {!isHome && !isVideoCall && (
           <nav
             className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md flex justify-between items-center bg-gray-100 border-t border-gray-300 h-16 px-4 z-50 shadow"
             style={{

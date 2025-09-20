@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MessageCircleIcon, Send, Upload, Mic, X } from "lucide-react";
+import { SquarePen, Video } from "lucide-react";
+import { Send, Mic, X } from "lucide-react";
 import AzureAvatar from "@/components/avatar/AzureAvatar";
 import { useAzureAvatarEnhanced } from '@/hooks/useAzureAvatarEnhanced'
 
@@ -12,6 +13,17 @@ type Message = {
 };
 
 export default function ChatbotPage() {
+  const router = useRouter();
+  // Clear chat handler
+  const handleClearChat = () => {
+    setMessages([]);
+    setInputMessage("");
+  };
+
+  // Video call handler
+  const handleVideoCall = () => {
+    router.push("/video-call");
+  };
   const [isAvatarSpeaking, setIsAvatarSpeaking] = useState(false);
   const [microphonePermission, setMicrophonePermission] = useState<
     "granted" | "denied" | "pending" | "unknown"
@@ -49,31 +61,35 @@ export default function ChatbotPage() {
     onError: (error) => {
       console.error("Avatar error:", error);
     },
-    autoProcessSpeech: true,
+    autoProcessSpeech: false,
+    chatEndpoint: '/api/chat'
   });
 
   useEffect(() => {
     setIsAvatarSpeaking(isSpeaking);
   }, [isSpeaking]);
 
-  // Request microphone permission when needed
-  const requestMicrophonePermission = async () => {
-    setMicrophonePermission("pending");
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setMicrophonePermission("granted");
-      if ("speechSynthesis" in window) {
-        const testUtterance = new SpeechSynthesisUtterance("Audio test");
-        testUtterance.volume = 0.1;
-        speechSynthesis.speak(testUtterance);
+  useEffect(() => {
+    const initializeAudio = async () => {
+      // Check if MediaDevices API is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error('MediaDevices API not supported');
+        setMicrophonePermission('denied');
+        return;
       }
-      stream.getTracks().forEach((track) => track.stop());
-      return true;
-    } catch (error) {
-      setMicrophonePermission("denied");
-      return false;
-    }
-  };
+
+      // Check if we're in a secure context
+      if (!window.isSecureContext) {
+        console.error('Not in secure context - microphone access requires HTTPS or localhost');
+        setMicrophonePermission('denied');
+        return;
+      }
+
+      setMicrophonePermission('unknown');
+    };
+
+    initializeAudio();
+  }, []);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -135,9 +151,11 @@ export default function ChatbotPage() {
           }
         });
       }
-
-      // Once the stream is complete, speak the full response
-      speakText(assistantResponse);
+      
+      // Once the stream is complete, add a delay before speaking the full response
+      setTimeout(() => {
+        speakText(assistantResponse);
+      }, 1000);
 
     } catch (error) {
       console.error("Streaming fetch failed:", error);
@@ -156,13 +174,13 @@ export default function ChatbotPage() {
       await stopSpeaking();
       setIsAvatarSpeaking(false);
       setInputMessage("");
-    } catch (error) {
+    } catch (error: any) {
       setIsAvatarSpeaking(false);
     }
   };
 
   // Handle Enter key for textarea
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage(inputMessage);
@@ -170,9 +188,32 @@ export default function ChatbotPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white relative w-full" style={{ overflow: 'hidden' }}>
+    <div className="flex flex-col bg-white relative w-full min-h-[calc(100vh-64px)] overflow-hidden">
+      {/* Top Navigation Bar */}
+      <nav className="relative w-full flex items-center justify-center h-16 border-b border-gray-200 bg-white shadow-sm">
+        {/* Clear Chat Button (left) */}
+        <button
+          onClick={handleClearChat}
+          aria-label="Clear chat"
+          title="Clear chat session"
+          className="absolute left-4 hover:bg-blue-700 rounded-full p-2 transition"
+        >
+          <SquarePen className="h-5 w-5 text-blue-600" />
+        </button>
+        {/* Title (center) */}
+        <span className="text-lg font-semibold text-gray-800">Your Buddy Companion</span>
+        {/* Video Call Button (right) */}
+        <button
+          onClick={handleVideoCall}
+          aria-label="Video call"
+          title="Start video call"
+          className="absolute right-4 hover:bg-green-700 rounded-full p-2 transition"
+        >
+          <Video className="h-5 w-5 text-green-600" />
+        </button>
+      </nav>
       {/* Avatar and status */}
-      <div className="w-full flex flex-col items-center pt-26 pb-2">
+      <div className="w-full flex flex-col items-center pt-20 pb-2">
         <AzureAvatar
           onSpeechRecognized={handleSpeechRecognized}
           onSpeechStart={handleSpeechStart}
@@ -194,7 +235,9 @@ export default function ChatbotPage() {
         {microphonePermission === "denied" && (
           <div className="mt-2 bg-red-100 border border-red-300 rounded-lg px-3 py-2 text-xs flex items-center space-x-2">
             <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-            <span>Microphone permission denied.</span>
+            <span>
+              Microphone access is blocked.
+            </span>
           </div>
         )}
         {microphonePermission === "granted" && (
@@ -203,17 +246,6 @@ export default function ChatbotPage() {
             <span>Microphone ready.</span>
           </div>
         )}
-        {/* Avatar Status Indicator
-        <div className="mt-2 flex items-center justify-center space-x-2">
-          <div
-            className={`w-2 h-2 rounded-full ${
-              avatarReady ? "bg-green-500" : "bg-yellow-500 animate-pulse"
-            }`}
-          ></div>
-          <span className="text-xs text-gray-600">
-            {avatarReady ? "Avatar ready" : "Initializing avatar..."}
-          </span>
-        </div> */}
         {/* Error Display */}
         {avatarError && (
           <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg max-w-sm backdrop-blur-sm bg-opacity-90">
@@ -232,11 +264,6 @@ export default function ChatbotPage() {
       <div
         className="flex-1 w-full px-4 overflow-y-auto"
       >
-        {/* {messages.length === 0 && (
-          <div className="text-center text-gray-400 mt-8">
-            Start chatting with your AI avatar!
-          </div>
-        )} */}
         {messages.map((msg, idx) => (
           <div
             key={idx}
@@ -272,7 +299,7 @@ export default function ChatbotPage() {
             <textarea
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyDown}
               placeholder="Ask anything..."
               className="w-full resize-none border border-gray-300 rounded-2xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-transparent"
               rows={1}
@@ -283,44 +310,105 @@ export default function ChatbotPage() {
             {/* Voice Button */}
             <button
               type="button"
-              onClick={async () => {
-                const granted = microphonePermission === "granted"
-                  ? true
-                  : await requestMicrophonePermission();
-                if (
-                  granted &&
-                  avatarReady &&
-                  !isListening &&
-                  !isSpeaking &&
-                  !isLoading &&
-                  !isProcessing
-                ) {
-                  startListening();
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log("Microphone button clicked");
+                
+                // Check if we're in a secure context
+                if (!window.isSecureContext) {
+                  alert("Microphone access requires a secure connection (HTTPS). Please access this site via HTTPS or localhost.");
+                  return;
+                }
+                
+                console.log("Current state:", { 
+                  microphonePermission, 
+                  avatarReady, 
+                  isListening, 
+                  isSpeaking, 
+                  isLoading, 
+                  isProcessing 
+                });
+                
+                // Always request permission on first click or if permission was denied/unknown
+                if (microphonePermission !== "granted") {
+                  console.log("Requesting microphone permission...");
+                  
+                  // Set to pending state immediately
+                  setMicrophonePermission('pending');
+                  
+                  try {
+                    // This MUST trigger the browser's native permission dialog
+                    console.log('Calling getUserMedia...');
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                      audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                      }
+                    });
+                    
+                    console.log('✅ Microphone permission granted!');
+                    setMicrophonePermission('granted');
+                    
+                    // Clean up the stream
+                    stream.getTracks().forEach(track => {
+                      track.stop();
+                      console.log('Track stopped:', track.kind);
+                    });
+                    
+                    // Now start listening since we have permission
+                    if (avatarReady && !isListening && !isSpeaking && !isLoading && !isProcessing) {
+                      console.log("Starting listening after permission granted...");
+                      setTimeout(() => startListening(), 100); // Small delay to ensure state is updated
+                    }
+                    
+                  } catch (error: any) {
+                    console.error('❌ Microphone permission error:', error);
+                    setMicrophonePermission('denied');
+                    return;
+                  }
+                } else {
+                  if (avatarReady && !isListening && !isSpeaking && !isLoading && !isProcessing) {
+                    console.log("Starting listening with existing permission...");
+                    startListening();
+                  } else {
+                    console.log("Cannot start listening, conditions not met:", {
+                      avatarReady,
+                      isListening,
+                      isSpeaking,
+                      isLoading,
+                      isProcessing
+                    });
+                  }
                 }
               }}
               disabled={
-                microphonePermission === "denied" ||
                 !avatarReady ||
                 isListening ||
                 isSpeaking ||
                 isLoading ||
-                isProcessing
+                isProcessing ||
+                microphonePermission === "pending"
               }
               className={`p-3 mb-2 rounded-full transition-all duration-200 transform hover:scale-105 ${
                 isListening
                   ? 'bg-red-500 text-white animate-pulse'
-                  : avatarReady
+                  : avatarReady && microphonePermission !== "denied"
                   ? 'text-gray-600 hover:text-green-600 hover:bg-green-50'
                   : 'text-gray-300 cursor-not-allowed'
               }`}
               title={
                 microphonePermission === "denied"
-                  ? "Microphone permission denied"
+                  ? "Microphone permission denied - click to retry"
+                  : microphonePermission === "pending"
+                  ? "Requesting microphone permission..."
                   : !avatarReady
                   ? "Avatar not ready"
                   : isListening
                   ? "Listening..."
-                  : "Voice message"
+                  : "Click to start voice input"
               }
             >
               <Mic className="w-5 h-5" />

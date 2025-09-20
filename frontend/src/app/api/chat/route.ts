@@ -8,6 +8,8 @@ interface Message {
 interface ChatRequest {
   message: string
   message_history?: Message[]
+  mood?: string | null
+  risk_score?: number | null
 }
 
 // Set runtime to 'edge' to enable streaming and Web API usage
@@ -36,6 +38,8 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         message: body.message,
         message_history: body.message_history || [],
+        mood: body.mood || null,
+        risk_score: body.risk_score || null,
       }),
     })
 
