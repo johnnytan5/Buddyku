@@ -6,7 +6,8 @@ import {
   JournalEntry, 
   MemoryJarItem, 
   journalEntriesData, 
-  distributeMemoriesToJars 
+  distributeMemoriesToJars,
+  getAllJournalEntries
 } from '@/lib/memoryData';
 
 interface EmotionJarConfig {
@@ -742,8 +743,20 @@ export default function ExplorePage() {
   
   useEffect(() => {
     // Transform journal entries to emotion-categorized memories
-    const distributedMemories = distributeMemoriesToJars(journalEntriesData);
+    const distributedMemories = distributeMemoriesToJars(getAllJournalEntries());
     setEmotionJars(distributedMemories);
+    
+    // Listen for data changes
+    const handleDataChange = () => {
+      const updatedMemories = distributeMemoriesToJars(getAllJournalEntries());
+      setEmotionJars(updatedMemories);
+    };
+    
+    window.addEventListener('journalDataChanged', handleDataChange);
+    
+    return () => {
+      window.removeEventListener('journalDataChanged', handleDataChange);
+    };
   }, []);
 
   const handleJarClick = (config: EmotionJarConfig) => {
