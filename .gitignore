@@ -1,2 +1,24 @@
 backend/.env.example
 .cursor/mcp.json
+
+# Python virtual environment
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+backend/.Python
+backend/env/
+backend/ENV/
+backend/env.bak/
+backend/venv.bak/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
