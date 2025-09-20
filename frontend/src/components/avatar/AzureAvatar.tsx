@@ -145,6 +145,7 @@ const AzureAvatar: React.FC<AzureAvatarProps> = ({
   if (useNewImplementation) {
     return (
       <AzureAvatarV2
+        onSpeechRecognized={onSpeechRecognized}
         onSpeechStart={onSpeechStart}
         onSpeechEnd={onSpeechEnd}
         onAvatarReady={onAvatarReady}

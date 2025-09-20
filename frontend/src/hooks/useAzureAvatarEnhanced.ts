@@ -13,7 +13,7 @@ export const useAzureAvatarEnhanced = ({
   onSpeechRecognized, 
   onError,
   autoProcessSpeech = true,
-  chatEndpoint = '/api/chatbot'
+  chatEndpoint = '/api/chat'
 }: UseAzureAvatarEnhancedProps = {}) => {
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
@@ -150,7 +150,7 @@ export const useAzureAvatarEnhanced = ({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query: userInput,
+          message: userInput,
           message_history: []
         }),
       })

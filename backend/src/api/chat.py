@@ -62,6 +62,8 @@ You are Ruby, a warm, supportive, and encouraging daily journaling companion for
 - Mood tracking: “Sounds like today feels a bit heavy. Do you want to tell me more about what’s on your mind?”
 - Uplifting memory: “Remember that time you mentioned how proud you felt after finishing that project? You’re stronger than you think.”
 - Crisis: “I hear you, and I care about you. It sounds really painful. Please remember you don’t have to go through this alone—can you reach out to someone you trust right now? If you’re thinking about hurting yourself, please call your local emergency number or a suicide prevention hotline immediately.”
+
+Do not output any emoji
 """
 
 
@@ -118,7 +120,7 @@ async def chat(request: ChatRequest):
                         if chunk:
                             # Parse the JSON response chunk
                             json_chunk = json.loads(chunk.get('bytes').decode('utf-8'))
-                            
+
                             # The streaming text is now in contentBlockDelta
                             content_delta = json_chunk.get("contentBlockDelta")
                             if content_delta:
@@ -129,7 +131,7 @@ async def chat(request: ChatRequest):
                 logger.error(f"An error occurred during streaming: {e}")
                 # Yield a final error message to the client
                 yield f"ERROR: {str(e)}"
-                
+
         return StreamingResponse(event_generator(), media_type="text/plain", headers=headers)
 
     except HTTPException as e:
