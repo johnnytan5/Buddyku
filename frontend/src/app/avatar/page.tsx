@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { SquarePen, Video } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { MessageCircleIcon, Send, Mic, X } from "lucide-react";
+import { SquarePen, Video } from "lucide-react";
+import { Send, Mic, X } from "lucide-react";
 import AzureAvatar from "@/components/avatar/AzureAvatar";
 import { useAzureAvatarEnhanced } from '@/hooks/useAzureAvatarEnhanced'
 
@@ -13,15 +13,16 @@ type Message = {
 };
 
 export default function ChatbotPage() {
+  const router = useRouter();
   // Clear chat handler
   const handleClearChat = () => {
     setMessages([]);
     setInputMessage("");
   };
 
-  // Video call handler (stub)
+  // Video call handler
   const handleVideoCall = () => {
-    alert("Video call feature coming soon!");
+    router.push("/video-call");
   };
   const [isAvatarSpeaking, setIsAvatarSpeaking] = useState(false);
   const [microphonePermission, setMicrophonePermission] = useState<
@@ -32,25 +33,6 @@ export default function ChatbotPage() {
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Function to request microphone permission when button is clicked
-  const requestMicrophonePermission = async (): Promise<boolean> => {
-    setMicrophonePermission('pending');
-    try {
-      console.log('Requesting microphone permission...');
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('Microphone permission granted');
-      setMicrophonePermission('granted');
-      
-      // Stop the stream after getting permission
-      stream.getTracks().forEach(track => track.stop());
-      return true;
-    } catch (error) {
-      console.error('Microphone permission denied:', error);
-      setMicrophonePermission('denied');
-      return false;
-    }
-  };
 
   // Azure Avatar integration
   const {
@@ -103,8 +85,6 @@ export default function ChatbotPage() {
         return;
       }
 
-      // Don't automatically request permission on page load
-      // Let user click the button first
       setMicrophonePermission('unknown');
     };
 
@@ -173,11 +153,9 @@ export default function ChatbotPage() {
       }
       
       // Once the stream is complete, add a delay before speaking the full response
-      console.log("Stream complete, waiting before speaking...");
       setTimeout(() => {
-        console.log("Speaking response:", assistantResponse.substring(0, 50) + "...");
         speakText(assistantResponse);
-      }, 1000); // 1 second delay
+      }, 1000);
 
     } catch (error) {
       console.error("Streaming fetch failed:", error);
