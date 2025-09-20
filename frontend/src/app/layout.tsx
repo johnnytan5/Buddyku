@@ -36,7 +36,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white min-h-screen flex flex-col items-center justify-center`}
         style={{ margin: 0, paddingBottom: "64px" }}
       >
-        <main className="max-w-md mx-auto">{children}</main>
+
+        <main className={pathname === "/profile" ? "w-full" : "max-w-md mx-auto"}>{children}</main>
         {/* Mobile Tab Bar - hidden on home page and video call page */}
         {!isHome && !isVideoCall && (
           <nav
