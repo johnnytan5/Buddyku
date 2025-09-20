@@ -10,7 +10,13 @@ import { useAzureAvatarEnhanced } from '@/hooks/useAzureAvatarEnhanced'
 type Message = {
   role: "user" | "assistant";
   content: string;
+  breathingSuggestion?: boolean;
 };
+
+
+// Use the BreathingModal from /modal1/page.tsx
+import dynamic from 'next/dynamic';
+const BreathingModal = dynamic(() => import('../modal1/page'), { ssr: false });
 
 export default function ChatbotPage() {
   const router = useRouter();
@@ -25,6 +31,7 @@ export default function ChatbotPage() {
     router.push("/video-call");
   };
   const [isAvatarSpeaking, setIsAvatarSpeaking] = useState(false);
+  const [showBreathingModal, setShowBreathingModal] = useState(false);
   const [microphonePermission, setMicrophonePermission] = useState<
     "granted" | "denied" | "pending" | "unknown"
   >("unknown");
@@ -103,6 +110,22 @@ export default function ChatbotPage() {
     setMessages((prev) => [...prev, { role: "user", content: message }]);
     setInputMessage("");
 
+  // Check for 'stress' keyword
+  if (/\bstress+s*\b/i.test(message)) {
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "I'm really sorry you're feeling stressed right now. That sounds tough, and it’s completely okay to feel this way sometimes. You don’t have to go through it alone—I’m here to listen if you’d like to share what’s on your mind. Would you like me to guide you through a gentle breathing exercise to help you feel a bit calmer?",
+            breathingSuggestion: true,
+          } as any,
+        ]);
+      }, 2000);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -125,7 +148,7 @@ export default function ChatbotPage() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let assistantResponse = "";
-     
+    
       // Read the stream and update the state with each new chunk
       while (true) {
         const { value, done } = await reader.read();
@@ -226,6 +249,7 @@ export default function ChatbotPage() {
           className="mx-auto"
         />
         {/* Microphone Permission Indicator */}
+        {/* Microphone Permission Indicator */}
         {microphonePermission === "pending" && (
           <div className="mt-2 bg-yellow-100 border border-yellow-300 rounded-lg px-3 py-2 text-xs flex items-center space-x-2">
             <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
@@ -235,9 +259,7 @@ export default function ChatbotPage() {
         {microphonePermission === "denied" && (
           <div className="mt-2 bg-red-100 border border-red-300 rounded-lg px-3 py-2 text-xs flex items-center space-x-2">
             <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-            <span>
-              Microphone access is blocked.
-            </span>
+            <span>Microphone access is blocked.</span>
           </div>
         )}
         {microphonePermission === "granted" && (
@@ -246,7 +268,6 @@ export default function ChatbotPage() {
             <span>Microphone ready.</span>
           </div>
         )}
-        {/* Error Display */}
         {avatarError && (
           <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg max-w-sm backdrop-blur-sm bg-opacity-90">
             <p className="text-xs text-red-600 text-center">{avatarError}</p>
@@ -278,7 +299,19 @@ export default function ChatbotPage() {
                   : "bg-gray-100 text-gray-800"
               }`}
             >
-              {msg.content}
+              {msg.breathingSuggestion ? (
+                <div>
+                  <div>{msg.content}</div>
+                  <button
+                    className="mt-3 w-full px-4 py-3 text-sm font-semibold rounded-xl shadow-sm transition-all duration-200 border border-blue-200/60 bg-gradient-to-br from-purple-100 to-blue-100 text-blue-700 hover:from-purple-100 hover:to-blue-200 hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    onClick={() => setShowBreathingModal(true)}
+                  >
+                    <span className="inline-block align-middle mr-1.5">🧘‍♂️</span>Start Breathing Exercise
+                  </button>
+                </div>
+              ) : (
+                msg.content
+              )}
             </div>
           </div>
         ))}
@@ -439,6 +472,27 @@ export default function ChatbotPage() {
           </div>
         </div>
       </div>
+      {/* Breathing Exercise Modal */}
+      {showBreathingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          {/* Clicking outside closes the modal */}
+          <div
+            className="fixed inset-0"
+            style={{ zIndex: 40 }}
+            onClick={() => setShowBreathingModal(false)}
+          />
+          <div
+            className="relative w-full max-w-md z-50"
+            onClick={e => e.stopPropagation()}
+          >
+            <BreathingModal onClose={() => setShowBreathingModal(false)} />
+            {/* Overlay close button (optional):
+            <button onClick={() => setShowBreathingModal(false)} className="absolute top-2 right-2 z-50 bg-white rounded-full p-1 shadow hover:bg-gray-100">
+              <X className="w-5 h-5 text-gray-600" />
+            </button> */}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

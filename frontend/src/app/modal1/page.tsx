@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Play, Pause, RotateCcw } from 'lucide-react';
 
-export default function BreathingModal() {
+export default function BreathingModal({ onClose }: { onClose?: () => void }) {
   const [isActive, setIsActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [timeLeft, setTimeLeft] = useState(15);
@@ -116,17 +116,17 @@ export default function BreathingModal() {
   const getBreathColor = () => {
     switch (breathPhase) {
       case 'in':
-        return 'from-yellow-100 to-yellow-200';
+        return 'from-purple-100 to-blue-200';
       case 'hold':
-        return 'from-yellow-200 to-yellow-300';
+        return 'from-purple-200 to-blue-300';
       case 'out':
-        return 'from-yellow-300 to-yellow-400';
+        return 'from-blue-200 to-blue-400';
       case 'pause':
-        return 'from-yellow-50 to-yellow-100';
+        return 'from-purple-50 to-blue-100';
       case 'complete':
-        return 'from-yellow-400 to-yellow-500';
+        return 'from-blue-400 to-purple-300';
       default:
-        return 'from-yellow-100 to-yellow-200';
+        return 'from-purple-100 to-blue-200';
     }
   };
 
@@ -167,18 +167,18 @@ export default function BreathingModal() {
   };
 
   return (
-    <div className="fixed inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl max-w-md w-full max-h-[95vh] overflow-y-auto shadow-xl border border-yellow-200/30">
+  <div className="fixed inset-0 bg-gradient-to-br from-blue-100/80 via-purple-100/80 to-white/80 backdrop-blur-md flex items-start justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white mt-8 rounded-2xl max-w-md w-full max-h-[95vh] overflow-y-auto shadow-xl border border-yellow-200/30">
         {/* Header */}
-        <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-b border-yellow-200/50 p-4">
+      <div className="bg-gradient-to-r from-purple-50 to-blue-100 border-b border-blue-200/40 p-4">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-xl font-normal text-gray-800">Breathing Exercise</h2>
               <p className="text-gray-600 mt-0.5 text-xs font-normal">15 seconds of mindful breathing</p>
             </div>
             <button 
-              onClick={() => window.history.back()}
-              className="p-1.5 hover:bg-yellow-100 rounded-lg transition-all duration-200 text-gray-600 hover:text-gray-800"
+              onClick={onClose}
+              className="p-1.5 hover:bg-blue-100 rounded-lg transition-all duration-200 text-gray-600 hover:text-gray-800"
             >
               <X size={18} />
             </button>
@@ -254,28 +254,28 @@ export default function BreathingModal() {
 
           {/* Instructions */}
           <div className="mb-6">
-            <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200/50 shadow-sm">
+            <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-4 border border-blue-100/50 shadow-sm">
               <h3 className="font-normal text-gray-800 mb-3 text-center text-base">
                 Instructions
               </h3>
               <div className="text-xs text-gray-600 space-y-2 font-normal">
                 <div className="flex items-center">
-                  <div className="w-1 h-1 bg-yellow-400 rounded-full mr-2"></div>
+                  <div className="w-1 h-1 bg-purple-400 rounded-full mr-2"></div>
                   Breathe in for 3 seconds
                 </div>
                 <div className="flex items-center">
-                  <div className="w-1 h-1 bg-yellow-500 rounded-full mr-2"></div>
+                  <div className="w-1 h-1 bg-purple-500 rounded-full mr-2"></div>
                   Hold for 1.5 seconds
                 </div>
                 <div className="flex items-center">
-                  <div className="w-1 h-1 bg-yellow-600 rounded-full mr-2"></div>
+                  <div className="w-1 h-1 bg-blue-500 rounded-full mr-2"></div>
                   Breathe out for 3 seconds
                 </div>
                 <div className="flex items-center">
-                  <div className="w-1 h-1 bg-yellow-300 rounded-full mr-2"></div>
+                  <div className="w-1 h-1 bg-blue-300 rounded-full mr-2"></div>
                   Rest for 1.5 seconds
                 </div>
-                <div className="mt-3 p-2 bg-yellow-100 rounded border border-yellow-200">
+                <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-100">
                   <div className="text-gray-700 font-normal text-center text-xs">Complete 2 cycles in 15 seconds</div>
                 </div>
               </div>
@@ -287,13 +287,13 @@ export default function BreathingModal() {
             {!isActive && !isResetting ? (
               <button
                 onClick={startExercise}
-                className="flex items-center gap-1.5 px-4 py-2 bg-yellow-100 hover:bg-yellow-200 text-gray-800 rounded-lg font-normal transition-all duration-200 border border-yellow-300/50 shadow-sm hover:shadow-md text-sm"
+                className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-br from-purple-100 to-blue-100 hover:from-purple-200 hover:to-blue-200 text-blue-800 rounded-lg font-normal transition-all duration-200 border border-blue-200/50 shadow-sm hover:shadow-md text-sm"
               >
                 <Play size={16} />
                 Start Exercise
               </button>
             ) : isResetting ? (
-              <div className="flex items-center gap-1.5 px-4 py-2 bg-yellow-200 text-gray-800 rounded-lg font-normal shadow-sm text-sm">
+              <div className="flex items-center gap-1.5 px-4 py-2 bg-blue-200 text-blue-800 rounded-lg font-normal shadow-sm text-sm">
                 <div className="w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
                 Exercise Complete!
               </div>
@@ -301,14 +301,14 @@ export default function BreathingModal() {
               <>
                 <button
                   onClick={pauseExercise}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 hover:bg-yellow-100 text-gray-700 rounded-lg font-normal transition-all duration-200 border border-yellow-200/50 shadow-sm hover:shadow-md text-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-blue-50 text-blue-700 rounded-lg font-normal transition-all duration-200 border border-blue-100/50 shadow-sm hover:shadow-md text-sm"
                 >
                   {isPaused ? <Play size={14} /> : <Pause size={14} />}
                   {isPaused ? 'Resume' : 'Pause'}
                 </button>
                 <button
                   onClick={resetExercise}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg font-normal transition-all duration-200 border border-gray-200 shadow-sm hover:shadow-md text-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-blue-50 text-blue-700 rounded-lg font-normal transition-all duration-200 border border-blue-100 shadow-sm hover:shadow-md text-sm"
                 >
                   <RotateCcw size={14} />
                   Reset
@@ -320,14 +320,14 @@ export default function BreathingModal() {
           {/* Progress Bar */}
           {isActive && (
             <div className="mt-4">
-              <div className="w-full bg-gray-100 rounded-full h-1.5 border border-gray-200">
+              <div className="w-full bg-blue-50 rounded-full h-1.5 border border-blue-100">
                 <div 
-                  className="bg-gradient-to-r from-yellow-200 to-yellow-400 h-1.5 rounded-full transition-all duration-1000 shadow-sm"
+                  className="bg-gradient-to-r from-purple-200 to-blue-400 h-1.5 rounded-full transition-all duration-1000 shadow-sm"
                   style={{ width: `${((15 - timeLeft) / 15) * 100}%` }}
                 >
                 </div>
               </div>
-              <div className="text-xs text-gray-500 mt-1 text-center font-normal">
+              <div className="text-xs text-blue-500 mt-1 text-center font-normal">
                 {Math.round(((15 - timeLeft) / 15) * 100)}% Complete
               </div>
             </div>
