@@ -103,7 +103,7 @@ export const emotionDescriptions = {
 };
 
 // Sample journal entries data
-export const journalEntriesData: Record<string, JournalEntry> = {
+export let journalEntriesData: Record<string, JournalEntry> = {
   '2025-09-15': {
     date: '2025-09-15',
     mood: 'happy',
@@ -356,4 +356,30 @@ export const distributeMemoriesToJars = (entries: Record<string, JournalEntry>) 
   });
   
   return emotionJars;
+};
+
+// Function to add new journal entries to the data
+export const addJournalEntry = (entry: JournalEntry): void => {
+  journalEntriesData[entry.date] = entry;
+  // Trigger any listeners that need to know about data changes
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('journalDataChanged'));
+  }
+};
+
+// Function to update an existing journal entry
+export const updateJournalEntry = (date: string, updatedEntry: JournalEntry): void => {
+  if (journalEntriesData[date]) {
+    journalEntriesData[date] = updatedEntry;
+  }
+};
+
+// Function to delete a journal entry
+export const deleteJournalEntry = (date: string): void => {
+  delete journalEntriesData[date];
+};
+
+// Function to get all journal entries
+export const getAllJournalEntries = (): Record<string, JournalEntry> => {
+  return journalEntriesData;
 };

@@ -6,7 +6,9 @@ import {
   JournalEntry, 
   journalEntriesData,
   moodToEmotionMap,
-  emotionDescriptions 
+  emotionDescriptions,
+  addJournalEntry,
+  getAllJournalEntries
 } from '@/lib/memoryData';
 
 export default function MemoryPage() {
@@ -14,7 +16,7 @@ export default function MemoryPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showEmergencyKit, setShowEmergencyKit] = useState(false);
-  const [journalEntries, setJournalEntries] = useState<Record<string, JournalEntry>>(journalEntriesData);
+  const [journalEntries, setJournalEntries] = useState<Record<string, JournalEntry>>(() => getAllJournalEntries());
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -415,6 +417,10 @@ export default function MemoryPage() {
           onClose={() => setShowUploadModal(false)}
           selectedDate={selectedDate}
           onSave={(entry) => {
+            // Save to memoryData file
+            addJournalEntry(entry);
+            
+            // Update local state to reflect changes immediately
             setJournalEntries(prev => ({
               ...prev,
               [entry.date]: entry
@@ -1034,11 +1040,14 @@ const UploadModal = ({
   };
 
   const handleSave = () => {
-    if (!selectedDate) return;
+    // Use selectedDate if available, otherwise use today's date
+    const saveDate = selectedDate || new Date().toISOString().split('T')[0];
+    
+    console.log('Saving memory entry:', { saveDate, mood, emotion, reflection });
     
     // Create new journal entry
     const newEntry: JournalEntry = {
-      date: selectedDate,
+      date: saveDate,
       mood,
       emotion,
       content: reflection,
@@ -1063,16 +1072,22 @@ const UploadModal = ({
                 <BookOpen className="mr-2 text-blue-600" size={20} />
                 New Memory Entry
               </h3>
-              {selectedDate && (
-                <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                  {new Date(selectedDate).toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric',
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </p>
-              )}
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                {selectedDate 
+                  ? new Date(selectedDate).toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric',
+                      month: 'long', 
+                      day: 'numeric' 
+                    })
+                  : new Date().toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric',
+                      month: 'long', 
+                      day: 'numeric' 
+                    })
+                }
+              </p>
             </div>
             <button 
               onClick={onClose}
@@ -1281,6 +1296,7 @@ const UploadModal = ({
               onClick={handleSave}
               disabled={!reflection.trim()}
               className="flex-1 px-4 py-2 sm:px-6 sm:py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
+              title={!reflection.trim() ? "Please add a reflection to save your memory" : "Save your memory entry"}
             >
               Save Memory
             </button>
