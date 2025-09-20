@@ -104,8 +104,8 @@ export const emotionDescriptions = {
 
 // Sample journal entries data
 export const journalEntriesData: Record<string, JournalEntry> = {
-  '2024-09-15': {
-    date: '2024-09-15',
+  '2025-09-15': {
+    date: '2025-09-15',
     mood: 'happy',
     emotion: 'joy',
     title: 'Perfect Picnic with Best Friends',
@@ -124,7 +124,7 @@ export const journalEntriesData: Record<string, JournalEntry> = {
         url: '/api/placeholder/400/300',
         filename: 'park_picnic.jpg',
         caption: 'Beautiful day at the park with friends - Sarah and Emma laughing while Mike plays guitar in the background',
-        uploadedAt: new Date('2024-09-15'),
+        uploadedAt: new Date('2025-09-15'),
         isFavorite: true
       },
       {
@@ -133,13 +133,13 @@ export const journalEntriesData: Record<string, JournalEntry> = {
         url: '/api/placeholder/video',
         filename: 'friends_laughing.mp4',
         caption: 'Everyone having such a good time - captured the moment when Emma told her hilarious work story',
-        uploadedAt: new Date('2024-09-15'),
+        uploadedAt: new Date('2025-09-15'),
         isFavorite: false
       }
     ]
   },
-  '2024-09-10': {
-    date: '2024-09-10',
+  '2025-09-10': {
+    date: '2025-09-10',
     mood: 'very-happy',
     emotion: 'gratitude',
     content: 'Got the job I applied for! Feeling excited about this new chapter. All the preparation and interviews finally paid off.',
@@ -153,7 +153,7 @@ export const journalEntriesData: Record<string, JournalEntry> = {
         url: '/api/placeholder/400/300',
         filename: 'job_offer.jpg',
         caption: 'The moment I got the call!',
-        uploadedAt: new Date('2024-09-10'),
+        uploadedAt: new Date('2025-09-10'),
         isFavorite: false
       },
       {
@@ -162,13 +162,13 @@ export const journalEntriesData: Record<string, JournalEntry> = {
         url: '/api/placeholder/audio',
         filename: 'celebration_voice_note.mp3',
         caption: 'Recording my excitement',
-        uploadedAt: new Date('2024-09-10'),
+        uploadedAt: new Date('2025-09-10'),
         isFavorite: true
       }
     ]
   },
-  '2024-09-18': {
-    date: '2024-09-18',
+  '2025-09-18': {
+    date: '2025-09-18',
     mood: 'neutral',
     emotion: 'calm',
     content: 'Regular day at work. Feeling okay, nothing special but nothing bad either. Just going through the motions.',
@@ -177,8 +177,8 @@ export const journalEntriesData: Record<string, JournalEntry> = {
     isFavorite: false,
     mediaAttachments: []
   },
-  '2024-09-12': {
-    date: '2024-09-12',
+  '2025-09-12': {
+    date: '2025-09-12',
     mood: 'happy',
     emotion: 'love',
     content: 'Spent quality time with family. Felt so connected and loved. Had deep conversations and shared stories.',
@@ -187,8 +187,8 @@ export const journalEntriesData: Record<string, JournalEntry> = {
     isFavorite: true,
     mediaAttachments: []
   },
-  '2024-09-08': {
-    date: '2024-09-08',
+  '2025-09-08': {
+    date: '2025-09-08',
     mood: 'sad',
     emotion: 'disappointed',
     content: 'Didn\'t get the promotion I was hoping for. Feeling let down but trying to stay positive.',
@@ -197,8 +197,8 @@ export const journalEntriesData: Record<string, JournalEntry> = {
     isFavorite: false,
     mediaAttachments: []
   },
-  '2024-09-14': {
-    date: '2024-09-14',
+  '2025-09-14': {
+    date: '2025-09-14',
     mood: 'happy',
     emotion: 'hope',
     content: 'Started planning my future goals and dreams. Feeling optimistic about what\'s ahead.',
@@ -207,8 +207,8 @@ export const journalEntriesData: Record<string, JournalEntry> = {
     isFavorite: true,
     mediaAttachments: []
   },
-  '2024-09-16': {
-    date: '2024-09-16',
+  '2025-09-16': {
+    date: '2025-09-16',
     mood: 'neutral',
     emotion: 'comfort',
     content: 'Cozy evening at home with hot tea and a good book. Sometimes simple pleasures are the best.',
@@ -217,14 +217,34 @@ export const journalEntriesData: Record<string, JournalEntry> = {
     isFavorite: false,
     mediaAttachments: []
   },
-  '2024-09-17': {
-    date: '2024-09-17',
+  '2025-09-17': {
+    date: '2025-09-17',
     mood: 'happy',
     emotion: 'belonging',
     content: 'Attended a community event and met wonderful people. Felt so welcomed and part of something bigger.',
     gratitude: ['New friendships', 'Community spirit'],
     achievements: ['Stepped out of comfort zone', 'Made 3 new connections'],
     isFavorite: true,
+    mediaAttachments: []
+  },
+  '2025-09-19': {
+    date: '2025-09-19',
+    mood: 'very-happy',
+    emotion: 'joy',
+    content: 'Amazing day celebrating with friends! We had such a wonderful time together.',
+    gratitude: ['Great friends', 'Celebration moments'],
+    achievements: ['Organized successful gathering', 'Created lasting memories'],
+    isFavorite: true,
+    mediaAttachments: []
+  },
+  '2025-09-20': {
+    date: '2025-09-20',
+    mood: 'happy',
+    emotion: 'gratitude',
+    content: 'Reflecting on all the good things in my life today. Feeling truly blessed.',
+    gratitude: ['Health', 'Family', 'Opportunities'],
+    achievements: ['Practiced gratitude', 'Called grandparents'],
+    isFavorite: false,
     mediaAttachments: []
   }
 };
