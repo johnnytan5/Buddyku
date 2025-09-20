@@ -10,6 +10,8 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     message_history: Optional[List[Message]] = None
+    mood: Optional[str] = None
+    risk_score: Optional[float] = None
 
 
 class ChatResponse(BaseModel):

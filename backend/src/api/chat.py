@@ -63,7 +63,7 @@ You are Ruby, a warm, supportive, and encouraging daily journaling companion for
 - Uplifting memory: “Remember that time you mentioned how proud you felt after finishing that project? You’re stronger than you think.”
 - Crisis: “I hear you, and I care about you. It sounds really painful. Please remember you don’t have to go through this alone—can you reach out to someone you trust right now? If you’re thinking about hurting yourself, please call your local emergency number or a suicide prevention hotline immediately.”
 
-Do not output any emoji
+Do not output any emoji.
 """
 
 
@@ -76,8 +76,16 @@ async def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail="Bedrock client is not initialized. Check your AWS credentials and region.")
 
     try:
+
         user_message = request.message
         message_history = request.message_history or []
+        logger.info(f"Request: {request}")
+
+        risk_score = getattr(request, 'risk_score', None)
+        mood = getattr(request, 'mood', None)
+        logger.info(f"Received message: {user_message}")
+        logger.info(f"Message history: {message_history}")
+        logger.info(f"Risk score: {risk_score}, Mood: {mood}")
 
         if not user_message:
             raise HTTPException(status_code=400, detail="No message provided.")
@@ -89,8 +97,15 @@ async def chat(request: ChatRequest):
         ]
         messages_list.append({"role": "user", "content": [{"text": user_message}]})
 
+        # Inject risk_score and mood into the system prompt if available
+        system_prompt = SYSTEM_PROMPT
+        if risk_score is not None or mood is not None:
+            system_prompt = SYSTEM_PROMPT + "\n\n" + (
+                f"[Current User Mood: {mood if mood is not None else 'Unknown'} | Risk Score: {risk_score if risk_score is not None else 'Unknown'}]"
+            )
+
         # Define the system prompt list
-        system_list = [{"text": SYSTEM_PROMPT}]
+        system_list = [{"text": system_prompt}]
 
         # Construct the request body with the new schema
         body = json.dumps({
