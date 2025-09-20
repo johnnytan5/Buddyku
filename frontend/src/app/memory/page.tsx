@@ -1,99 +1,22 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, BookOpen, Heart, Image, Video, Mic, X, Play } from 'lucide-react';
-
-interface MediaAttachment {
-  id: string;
-  type: 'image' | 'video' | 'audio';
-  url: string;
-  filename: string;
-  caption?: string;
-  uploadedAt: Date;
-  isFavorite?: boolean;
-}
-
-interface JournalEntry {
-  date: string;
-  mood: 'very-sad' | 'sad' | 'neutral' | 'happy' | 'very-happy';
-  content: string;
-  gratitude: string[];
-  achievements: string[];
-  mediaAttachments: MediaAttachment[];
-  isFavorite?: boolean;
-}
+import { 
+  MediaAttachment, 
+  JournalEntry, 
+  journalEntriesData,
+  moodToEmotionMap,
+  emotionDescriptions,
+  addJournalEntry,
+  getAllJournalEntries
+} from '@/lib/memoryData';
 
 export default function MemoryPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showEmergencyKit, setShowEmergencyKit] = useState(false);
-  const [journalEntries, setJournalEntries] = useState<Record<string, JournalEntry>>({
-    '2024-09-15': {
-      date: '2024-09-15',
-      mood: 'happy',
-      content: 'Had a great day with friends. We went to the park and had a picnic. The weather was perfect and everyone was in such good spirits.',
-      gratitude: ['Good weather', 'Supportive friends'],
-      achievements: ['Completed morning workout', 'Called mom'],
-      isFavorite: true,
-      mediaAttachments: [
-        {
-          id: '1',
-          type: 'image',
-          url: '/api/placeholder/400/300',
-          filename: 'park_picnic.jpg',
-          caption: 'Beautiful day at the park with friends',
-          uploadedAt: new Date('2024-09-15'),
-          isFavorite: true
-        },
-        {
-          id: '2',
-          type: 'video',
-          url: '/api/placeholder/video',
-          filename: 'friends_laughing.mp4',
-          caption: 'Everyone having such a good time',
-          uploadedAt: new Date('2024-09-15'),
-          isFavorite: false
-        }
-      ]
-    },
-    '2024-09-10': {
-      date: '2024-09-10',
-      mood: 'very-happy',
-      content: 'Got the job I applied for! Feeling excited about this new chapter. All the preparation and interviews finally paid off.',
-      gratitude: ['New opportunity', 'Family support'],
-      achievements: ['Successful interview', 'Career milestone'],
-      isFavorite: true,
-      mediaAttachments: [
-        {
-          id: '3',
-          type: 'image',
-          url: '/api/placeholder/400/300',
-          filename: 'job_offer.jpg',
-          caption: 'The moment I got the call!',
-          uploadedAt: new Date('2024-09-10'),
-          isFavorite: false
-        },
-        {
-          id: '4',
-          type: 'audio',
-          url: '/api/placeholder/audio',
-          filename: 'celebration_voice_note.mp3',
-          caption: 'Recording my excitement',
-          uploadedAt: new Date('2024-09-10'),
-          isFavorite: true
-        }
-      ]
-    },
-    '2024-09-18': {
-      date: '2024-09-18',
-      mood: 'neutral',
-      content: 'Regular day at work. Feeling okay, nothing special but nothing bad either. Just going through the motions.',
-      gratitude: ['Stable routine'],
-      achievements: ['Finished project tasks'],
-      isFavorite: false,
-      mediaAttachments: []
-    }
-  });
+  const [journalEntries, setJournalEntries] = useState<Record<string, JournalEntry>>(() => getAllJournalEntries());
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -217,57 +140,57 @@ export default function MemoryPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
       {/* Header */}
-      <div className="bg-white shadow-sm p-4">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">Memory & Journal</h1>
+      <div className="bg-white shadow-sm p-2 sm:p-4">
+        <div className="flex justify-between items-center max-w-sm mx-auto sm:max-w-none">
+          <h1 className="text-lg sm:text-2xl font-bold text-gray-800">Memory & Journal</h1>
           <div className="flex gap-2">
             <button
               onClick={() => setShowEmergencyKit(true)}
-              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              className="px-2 sm:px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
             >
-              <Heart size={18} className="text-white" />
-              Emergency Kit
+              <Heart size={16} className="text-white sm:w-[18px] sm:h-[18px]" />
+              <span className="hidden sm:inline">Emergency Kit</span>
+              <span className="sm:hidden">Kit</span>
             </button>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 p-4 space-y-6">
-        {/* Calendar Section */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
+      <div className="flex-1 p-2 sm:p-4 space-y-4 sm:space-y-6 max-w-sm mx-auto sm:max-w-none w-full overflow-x-hidden">{/* Calendar Section */}
+        <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6">
           {/* Calendar Header */}
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-4 sm:mb-6">
             <button 
               onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <ChevronLeft className="text-gray-600" size={20} />
+              <ChevronLeft className="text-gray-600" size={18} />
             </button>
-            <h2 className="text-xl font-semibold text-gray-800">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-800">
               {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </h2>
             <button 
               onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <ChevronRight className="text-gray-600" size={20} />
+              <ChevronRight className="text-gray-600" size={18} />
             </button>
           </div>
 
           {/* Days of Week */}
-          <div className="grid grid-cols-7 gap-2 mb-4">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-3 sm:mb-4">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="text-center text-sm font-medium text-gray-500 p-2">
+              <div key={day} className="text-center text-xs sm:text-sm font-medium text-gray-500 p-1 sm:p-2">
                 {day}
               </div>
             ))}
           </div>
 
           {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {days.map((day, index) => {
               if (day === null) {
-                return <div key={index} className="p-3"></div>;
+                return <div key={index} className="p-1 sm:p-3"></div>;
               }
 
               const dateKey = formatDateKey(currentMonth.getFullYear(), currentMonth.getMonth(), day);
@@ -279,27 +202,27 @@ export default function MemoryPage() {
                   key={day}
                   onClick={() => handleDateClick(day)}
                   className={`
-                    p-3 text-sm rounded-lg border-2 transition-all hover:scale-105 cursor-pointer
+                    p-1 sm:p-3 text-xs sm:text-sm rounded-lg border-2 transition-all hover:scale-105 cursor-pointer min-h-[2.5rem] sm:min-h-[3rem]
                     ${isSelected ? 'ring-2 ring-blue-400' : ''}
                     ${hasEntry ? getMoodColor(hasEntry.mood) : 'bg-white border-gray-200 hover:bg-gray-50'}
                   `}
                 >
                   <div className="flex flex-col items-center">
                     <span className="font-medium">{day}</span>
-                    <div className="flex items-center gap-1 mt-1">
+                    <div className="flex items-center gap-0.5 sm:gap-1 mt-0.5 sm:mt-1">
                       {hasEntry && (
                         <>
                           <span className="text-xs">{getMoodEmoji(hasEntry.mood)}</span>
                           {hasEntry.mediaAttachments.length > 0 && (
                             <div className="flex gap-0.5">
                               {hasEntry.mediaAttachments.some(m => m.type === 'image') && (
-                                <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                                <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-400 rounded-full"></div>
                               )}
                               {hasEntry.mediaAttachments.some(m => m.type === 'video') && (
-                                <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                                <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-purple-400 rounded-full"></div>
                               )}
                               {hasEntry.mediaAttachments.some(m => m.type === 'audio') && (
-                                <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
+                                <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-green-400 rounded-full"></div>
                               )}
                             </div>
                           )}
@@ -313,39 +236,39 @@ export default function MemoryPage() {
           </div>
 
           {/* Mood Legend */}
-          <div className="flex justify-center space-x-3 mt-6 text-xs">
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mt-4 sm:mt-6 text-xs">
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-red-200 rounded mr-1"></div>
-              <span>Very Sad</span>
+              <div className="w-2 h-2 sm:w-3 sm:h-3 bg-red-200 rounded mr-1"></div>
+              <span className="text-xs">Very Sad</span>
             </div>
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-orange-200 rounded mr-1"></div>
-              <span>Sad</span>
+              <div className="w-2 h-2 sm:w-3 sm:h-3 bg-orange-200 rounded mr-1"></div>
+              <span className="text-xs">Sad</span>
             </div>
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-gray-200 rounded mr-1"></div>
-              <span>Neutral</span>
+              <div className="w-2 h-2 sm:w-3 sm:h-3 bg-gray-200 rounded mr-1"></div>
+              <span className="text-xs">Neutral</span>
             </div>
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-green-200 rounded mr-1"></div>
-              <span>Happy</span>
+              <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-200 rounded mr-1"></div>
+              <span className="text-xs">Happy</span>
             </div>
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-blue-200 rounded mr-1"></div>
-              <span>Very Happy</span>
+              <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-200 rounded mr-1"></div>
+              <span className="text-xs">Very Happy</span>
             </div>
           </div>
         </div>
 
         {/* Memory Carousel */}
         {visualMedia.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold flex items-center">
-                <Heart className="mr-2 text-purple-600" size={20} />
+          <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6">
+            <div className="flex justify-between items-center mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg font-semibold flex items-center">
+                <Heart className="mr-2 text-purple-600" size={18} />
                 Your Visual Memories
               </h3>
-              <span className="text-sm text-gray-500">{visualMedia.length} memories</span>
+              <span className="text-xs sm:text-sm text-gray-500">{visualMedia.length} memories</span>
             </div>
             <MemoryCarousel 
               media={visualMedia} 
@@ -356,24 +279,26 @@ export default function MemoryPage() {
 
         {/* Journal Entry Section */}
         {selectedDate && (
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold flex items-center">
-                <BookOpen className="mr-2 text-blue-600" size={20} />
-                {new Date(selectedDate).toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
+          <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg font-semibold flex items-center">
+                <BookOpen className="mr-2 text-blue-600" size={18} />
+                <span className="text-sm sm:text-base">
+                  {new Date(selectedDate).toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </span>
               </h3>
               <div className="flex items-center gap-2">
                 {currentEntry && (
                   <>
-                    <span className="text-2xl">{getMoodEmoji(currentEntry.mood)}</span>
+                    <span className="text-xl sm:text-2xl">{getMoodEmoji(currentEntry.mood)}</span>
                     <button
                       onClick={() => toggleEntryFavorite(selectedDate)}
-                      className={`p-2 rounded-lg transition-colors ${
+                      className={`p-1 sm:p-2 rounded-lg transition-colors ${
                         currentEntry.isFavorite 
                           ? 'text-red-500 bg-red-50 hover:bg-red-100' 
                           : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
@@ -492,6 +417,10 @@ export default function MemoryPage() {
           onClose={() => setShowUploadModal(false)}
           selectedDate={selectedDate}
           onSave={(entry) => {
+            // Save to memoryData file
+            addJournalEntry(entry);
+            
+            // Update local state to reflect changes immediately
             setJournalEntries(prev => ({
               ...prev,
               [entry.date]: entry
@@ -548,7 +477,7 @@ const EmergencyMemoryKit = ({
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-purple-900/95 to-blue-900/95 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-2xl w-full max-w-sm sm:max-w-md max-h-[95vh] flex flex-col shadow-2xl mx-2">
+      <div className="bg-white rounded-2xl w-full max-w-sm sm:max-w-md h-[90vh] flex flex-col shadow-2xl mx-2">{/* Fixed height for consistency */}
         {/* Header */}
         <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-4 sm:p-6 rounded-t-2xl flex-shrink-0">
           <div className="flex justify-between items-center">
@@ -1037,6 +966,7 @@ const UploadModal = ({
   onSave: (entry: JournalEntry) => void;
 }) => {
   const [mood, setMood] = useState<JournalEntry['mood']>('neutral');
+  const [emotion, setEmotion] = useState<JournalEntry['emotion']>('calm');
   const [reflection, setReflection] = useState('');
   const [gratitudeItems, setGratitudeItems] = useState<string[]>(['']);
   const [achievementItems, setAchievementItems] = useState<string[]>(['']);
@@ -1051,6 +981,28 @@ const UploadModal = ({
     { mood: 'happy' as const, emoji: '😊', label: 'Happy' },
     { mood: 'very-happy' as const, emoji: '😄', label: 'Very Happy' }
   ];
+
+  const emotionOptions: { emotion: JournalEntry['emotion'], emoji: string, title: string, description: string }[] = [
+    { emotion: 'joy', emoji: '😄', title: 'Joy', description: 'Pure celebration & happiness' },
+    { emotion: 'hope', emoji: '🌟', title: 'Hope', description: 'Optimism & dreams' },
+    { emotion: 'love', emoji: '❤️', title: 'Love', description: 'Deep connection & belonging' },
+    { emotion: 'calm', emoji: '🌊', title: 'Calm', description: 'Peace & tranquility' },
+    { emotion: 'strength', emoji: '💪', title: 'Strength', description: 'Resilience & courage' },
+    { emotion: 'comfort', emoji: '☁️', title: 'Comfort', description: 'Warmth & security' },
+    { emotion: 'gratitude', emoji: '🙏', title: 'Gratitude', description: 'Thankfulness & appreciation' },
+    { emotion: 'belonging', emoji: '🏡', title: 'Belonging', description: 'Acceptance & community' },
+    { emotion: 'sad', emoji: '😢', title: 'Sadness', description: 'Gentle sadness that needs care' },
+    { emotion: 'disappointed', emoji: '😞', title: 'Disappointment', description: 'Learning from setbacks' }
+  ];
+
+  const handleMoodChange = (newMood: JournalEntry['mood']) => {
+    setMood(newMood);
+    // Auto-suggest emotion based on mood
+    const suggestedEmotion = moodToEmotionMap[newMood];
+    if (suggestedEmotion) {
+      setEmotion(suggestedEmotion);
+    }
+  };
 
   const handleFileUpload = (type: 'image' | 'video' | 'audio') => {
     // In a real app, this would handle file upload
@@ -1088,12 +1040,16 @@ const UploadModal = ({
   };
 
   const handleSave = () => {
-    if (!selectedDate) return;
+    // Use selectedDate if available, otherwise use today's date
+    const saveDate = selectedDate || new Date().toISOString().split('T')[0];
+    
+    console.log('Saving memory entry:', { saveDate, mood, emotion, reflection });
     
     // Create new journal entry
     const newEntry: JournalEntry = {
-      date: selectedDate,
+      date: saveDate,
       mood,
+      emotion,
       content: reflection,
       gratitude: gratitudeItems.filter(item => item.trim()),
       achievements: achievementItems.filter(item => item.trim()),
@@ -1106,37 +1062,43 @@ const UploadModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-xl max-w-sm sm:max-w-2xl w-full max-h-[95vh] overflow-y-auto">{/* Increased height and made mobile responsive */}
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-xl">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-3 sm:p-6 rounded-t-xl">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-xl font-semibold flex items-center">
-                <BookOpen className="mr-2 text-blue-600" size={24} />
+              <h3 className="text-lg sm:text-xl font-semibold flex items-center">
+                <BookOpen className="mr-2 text-blue-600" size={20} />
                 New Memory Entry
               </h3>
-              {selectedDate && (
-                <p className="text-sm text-gray-600 mt-1">
-                  {new Date(selectedDate).toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric',
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </p>
-              )}
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                {selectedDate 
+                  ? new Date(selectedDate).toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric',
+                      month: 'long', 
+                      day: 'numeric' 
+                    })
+                  : new Date().toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric',
+                      month: 'long', 
+                      day: 'numeric' 
+                    })
+                }
+              </p>
             </div>
             <button 
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">{/* Mobile responsive padding */}
           {/* Mood Selector */}
           <div>
             <h4 className="font-semibold mb-3 text-gray-800">How are you feeling?</h4>
@@ -1144,7 +1106,7 @@ const UploadModal = ({
               {moodOptions.map((option) => (
                 <button
                   key={option.mood}
-                  onClick={() => setMood(option.mood)}
+                  onClick={() => handleMoodChange(option.mood)}
                   className={`flex-1 p-3 rounded-lg border-2 transition-all ${
                     mood === option.mood 
                       ? 'border-blue-500 bg-blue-50 scale-105' 
@@ -1153,6 +1115,30 @@ const UploadModal = ({
                 >
                   <div className="text-2xl mb-1">{option.emoji}</div>
                   <div className="text-xs font-medium text-gray-600">{option.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Emotion Selector */}
+          <div>
+            <h4 className="font-semibold mb-3 text-gray-800">Which emotion jar would you like to add?</h4>
+            <div className="grid grid-cols-2 gap-2">
+              {emotionOptions.map((option) => (
+                <button
+                  key={option.emotion}
+                  onClick={() => setEmotion(option.emotion)}
+                  className={`p-3 rounded-lg border-2 transition-all text-left ${
+                    emotion === option.emotion 
+                      ? 'border-purple-500 bg-purple-50 scale-[1.02]' 
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">{option.emoji}</span>
+                    <span className="font-medium text-sm text-gray-800">{option.title}</span>
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">{option.description}</p>
                 </button>
               ))}
             </div>
@@ -1298,18 +1284,19 @@ const UploadModal = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 rounded-b-xl">
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-3 sm:p-6 rounded-b-xl">
           <div className="flex space-x-3">
             <button
               onClick={onClose}
-              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 sm:px-6 sm:py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={!reflection.trim()}
-              className="flex-1 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 px-4 py-2 sm:px-6 sm:py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
+              title={!reflection.trim() ? "Please add a reflection to save your memory" : "Save your memory entry"}
             >
               Save Memory
             </button>
