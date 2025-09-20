@@ -469,7 +469,7 @@ export default function MemoryPage() {
       {/* Floating Action Button */}
       <button 
         onClick={() => setShowUploadModal(true)}
-        className="fixed bottom-6 right-6 bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-full shadow-lg transition-colors"
+        className="fixed bottom-20 right-6 bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-full shadow-lg transition-colors z-40"
       >
         <Plus size={24} />
       </button>
