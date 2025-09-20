@@ -170,43 +170,43 @@ export default function BreathingModal() {
     <div className="fixed inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl max-w-md w-full max-h-[95vh] overflow-y-auto shadow-xl border border-yellow-200/30">
         {/* Header */}
-        <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-b border-yellow-200/50 p-8">
+        <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-b border-yellow-200/50 p-4">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-normal text-gray-800">Breathing Exercise</h2>
-              <p className="text-gray-600 mt-1 text-sm font-normal">15 seconds of mindful breathing</p>
+              <h2 className="text-xl font-normal text-gray-800">Breathing Exercise</h2>
+              <p className="text-gray-600 mt-0.5 text-xs font-normal">15 seconds of mindful breathing</p>
             </div>
             <button 
               onClick={() => window.history.back()}
-              className="p-2 hover:bg-yellow-100 rounded-lg transition-all duration-200 text-gray-600 hover:text-gray-800"
+              className="p-1.5 hover:bg-yellow-100 rounded-lg transition-all duration-200 text-gray-600 hover:text-gray-800"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="p-8 text-center bg-white">
+        <div className="p-4 text-center bg-white">
           {/* Timer */}
-          <div className="mb-12">
+          <div className="mb-6">
             <div className="relative inline-block">
-              <div className="text-6xl font-normal text-gray-800 mb-4">
+              <div className="text-4xl font-normal text-gray-800 mb-2">
                 {timeLeft}s
               </div>
               {/* Subtle timer effect */}
               {isActive && (
-                <div className="absolute inset-0 text-6xl font-normal text-yellow-300/30 animate-pulse">
+                <div className="absolute inset-0 text-4xl font-normal text-yellow-300/30 animate-pulse">
                   {timeLeft}s
                 </div>
               )}
             </div>
-            <div className="text-sm text-gray-500 font-normal">
+            <div className="text-xs text-gray-500 font-normal">
               {cycleCount > 0 && `${cycleCount} cycle${cycleCount > 1 ? 's' : ''} completed`}
             </div>
           </div>
 
           {/* Breathing Circle */}
-          <div className="flex justify-center items-center mb-12">
+          <div className="flex justify-center items-center mb-6">
             <div className="relative">
               {/* Minimal outer rings */}
               {isActive && (
@@ -237,7 +237,7 @@ export default function BreathingModal() {
                 }}
               >
                 <div className="text-gray-800 text-center">
-                  <div className="text-lg font-normal mb-1">
+                  <div className="text-sm font-normal mb-0.5">
                     {getBreathText()}
                   </div>
                   <div className="text-xs opacity-70 font-normal">
@@ -253,64 +253,64 @@ export default function BreathingModal() {
           </div>
 
           {/* Instructions */}
-          <div className="mb-10">
-            <div className="bg-yellow-50 rounded-xl p-6 border border-yellow-200/50 shadow-sm">
-              <h3 className="font-normal text-gray-800 mb-4 text-center text-lg">
+          <div className="mb-6">
+            <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200/50 shadow-sm">
+              <h3 className="font-normal text-gray-800 mb-3 text-center text-base">
                 Instructions
               </h3>
-              <div className="text-sm text-gray-600 space-y-3 font-normal">
+              <div className="text-xs text-gray-600 space-y-2 font-normal">
                 <div className="flex items-center">
-                  <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mr-3"></div>
+                  <div className="w-1 h-1 bg-yellow-400 rounded-full mr-2"></div>
                   Breathe in for 3 seconds
                 </div>
                 <div className="flex items-center">
-                  <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full mr-3"></div>
+                  <div className="w-1 h-1 bg-yellow-500 rounded-full mr-2"></div>
                   Hold for 1.5 seconds
                 </div>
                 <div className="flex items-center">
-                  <div className="w-1.5 h-1.5 bg-yellow-600 rounded-full mr-3"></div>
+                  <div className="w-1 h-1 bg-yellow-600 rounded-full mr-2"></div>
                   Breathe out for 3 seconds
                 </div>
                 <div className="flex items-center">
-                  <div className="w-1.5 h-1.5 bg-yellow-300 rounded-full mr-3"></div>
+                  <div className="w-1 h-1 bg-yellow-300 rounded-full mr-2"></div>
                   Rest for 1.5 seconds
                 </div>
-                <div className="mt-4 p-3 bg-yellow-100 rounded-lg border border-yellow-200">
-                  <div className="text-gray-700 font-normal text-center">Complete 2 cycles in 15 seconds</div>
+                <div className="mt-3 p-2 bg-yellow-100 rounded border border-yellow-200">
+                  <div className="text-gray-700 font-normal text-center text-xs">Complete 2 cycles in 15 seconds</div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Controls */}
-          <div className="flex justify-center space-x-4 mb-8">
+          <div className="flex justify-center space-x-3 mb-6">
             {!isActive && !isResetting ? (
               <button
                 onClick={startExercise}
-                className="flex items-center gap-2 px-6 py-3 bg-yellow-100 hover:bg-yellow-200 text-gray-800 rounded-lg font-normal transition-all duration-200 border border-yellow-300/50 shadow-sm hover:shadow-md"
+                className="flex items-center gap-1.5 px-4 py-2 bg-yellow-100 hover:bg-yellow-200 text-gray-800 rounded-lg font-normal transition-all duration-200 border border-yellow-300/50 shadow-sm hover:shadow-md text-sm"
               >
-                <Play size={18} />
+                <Play size={16} />
                 Start Exercise
               </button>
             ) : isResetting ? (
-              <div className="flex items-center gap-2 px-6 py-3 bg-yellow-200 text-gray-800 rounded-lg font-normal shadow-sm">
-                <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
+              <div className="flex items-center gap-1.5 px-4 py-2 bg-yellow-200 text-gray-800 rounded-lg font-normal shadow-sm text-sm">
+                <div className="w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
                 Exercise Complete!
               </div>
             ) : (
               <>
                 <button
                   onClick={pauseExercise}
-                  className="flex items-center gap-2 px-4 py-2 bg-yellow-50 hover:bg-yellow-100 text-gray-700 rounded-lg font-normal transition-all duration-200 border border-yellow-200/50 shadow-sm hover:shadow-md"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 hover:bg-yellow-100 text-gray-700 rounded-lg font-normal transition-all duration-200 border border-yellow-200/50 shadow-sm hover:shadow-md text-sm"
                 >
-                  {isPaused ? <Play size={16} /> : <Pause size={16} />}
+                  {isPaused ? <Play size={14} /> : <Pause size={14} />}
                   {isPaused ? 'Resume' : 'Pause'}
                 </button>
                 <button
                   onClick={resetExercise}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg font-normal transition-all duration-200 border border-gray-200 shadow-sm hover:shadow-md"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg font-normal transition-all duration-200 border border-gray-200 shadow-sm hover:shadow-md text-sm"
                 >
-                  <RotateCcw size={16} />
+                  <RotateCcw size={14} />
                   Reset
                 </button>
               </>
@@ -319,15 +319,15 @@ export default function BreathingModal() {
 
           {/* Progress Bar */}
           {isActive && (
-            <div className="mt-8">
-              <div className="w-full bg-gray-100 rounded-full h-2 border border-gray-200">
+            <div className="mt-4">
+              <div className="w-full bg-gray-100 rounded-full h-1.5 border border-gray-200">
                 <div 
-                  className="bg-gradient-to-r from-yellow-200 to-yellow-400 h-2 rounded-full transition-all duration-1000 shadow-sm"
+                  className="bg-gradient-to-r from-yellow-200 to-yellow-400 h-1.5 rounded-full transition-all duration-1000 shadow-sm"
                   style={{ width: `${((15 - timeLeft) / 15) * 100}%` }}
                 >
                 </div>
               </div>
-              <div className="text-xs text-gray-500 mt-2 text-center font-normal">
+              <div className="text-xs text-gray-500 mt-1 text-center font-normal">
                 {Math.round(((15 - timeLeft) / 15) * 100)}% Complete
               </div>
             </div>
