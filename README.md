@@ -1,1 +1,1 @@
-# Buddiku
+# Buddyku
