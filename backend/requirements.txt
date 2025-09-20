@@ -8,3 +8,6 @@ matplotlib
 seaborn
 scikit-learn
 cv2
+keras
+plotly
+neattext
