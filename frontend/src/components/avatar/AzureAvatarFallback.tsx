@@ -167,16 +167,6 @@ const AzureAvatarFallback: React.FC<AzureAvatarFallbackProps> = ({
           <Mic className="w-6 h-6" />
         )}
       </button>
-
-      {/* Status Indicator */}
-      <div className="mt-4 text-center">
-        <div className="flex items-center justify-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-          <span className="text-sm text-gray-600 font-medium">
-            {'Fallback Mode (Browser)'}
-          </span>
-        </div>
-      </div>
     </div>
   )
 }

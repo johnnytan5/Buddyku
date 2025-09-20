@@ -163,7 +163,7 @@ const AzureAvatarV2: React.FC<AzureAvatarV2Props> = memo(({
         {!isLoading && avatarReady && (
           <video
             ref={videoRef}
-            className={`w-90 h-120 ml-4 object-cover rounded-xl shadow-xl transform transition-all duration-300 ${
+            className={`w-90 h-120 object-cover rounded-xl shadow-xl transform transition-all duration-300 ${
               isSpeaking ? 'scale-103 shadow-blue-400/40' : 'scale-100'
             }`}
             muted={false}
