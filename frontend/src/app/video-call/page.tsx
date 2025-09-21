@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Mic, PhoneOff, X } from "lucide-react";
 import AzureAvatar from "@/components/avatar/AzureAvatar";
 import { useAzureAvatarEnhanced } from '@/hooks/useAzureAvatarEnhanced';
@@ -29,6 +29,9 @@ export default function VideoCallPage() {
     const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
     const [riskScore, setRiskScore] = useState<number | null>(null);
     const [mood, setMood] = useState<string | null>(null);
+    const [pendingLLMResponse, setPendingLLMResponse] = useState<string | null>(null);
+    const [isSupportiveSpeaking, setIsSupportiveSpeaking] = useState(false);
+
 
     // Periodically capture webcam image and send to mood endpoint
     useEffect(() => {
@@ -51,7 +54,19 @@ export default function VideoCallPage() {
                         if (resp.ok) {
                             const data = await resp.json();
                             if (typeof data.risk_score !== 'undefined') setRiskScore(data.risk_score);
-                            if (typeof data.mood !== 'undefined') setMood(data.mood);
+                            if (typeof data.mood !== 'undefined') {
+                                setMood(data.mood);
+                                if (['sad', 'very-sad'].includes(data.mood)) {
+                                    setIsSupportiveSpeaking(true);
+                                    speakText("I see you're feeling sad. Remember, it's okay to have tough days. Take a deep breath, and if you want, share what's on your mind. You're not alone in this.").then(() => {
+                                        setIsSupportiveSpeaking(false);
+                                        if (pendingLLMResponse) {
+                                            speakText(pendingLLMResponse);
+                                            setPendingLLMResponse(null);
+                                        }
+                                    });
+                                }
+                            }
                             success = true;
                         }
                     } catch (err) {
@@ -69,7 +84,19 @@ export default function VideoCallPage() {
                                 const data2 = await resp2.json();
                                 console.log(`[MoodAPI] Fallback response data: ${JSON.stringify(data2)}`);
                                 if (typeof data2.risk_score !== 'undefined') setRiskScore(data2.risk_score);
-                                if (typeof data2.mood !== 'undefined') setMood(data2.mood);
+                                if (typeof data2.mood !== 'undefined') {
+                                    setMood(data2.mood);
+                                    if (['sad', 'very-sad'].includes(data2.mood)) {
+                                        setIsSupportiveSpeaking(true);
+                                        speakText("I see you're feeling sad. Remember, it's okay to have tough days. Try to take a deep breath, and if you want, share what's on your mind. You're not alone and things can get better.").then(() => {
+                                            setIsSupportiveSpeaking(false);
+                                            if (pendingLLMResponse) {
+                                                speakText(pendingLLMResponse);
+                                                setPendingLLMResponse(null);
+                                            }
+                                        });
+                                    }
+                                }
                             }
                         } catch (err2) {
                             // Ignore errors for now
@@ -99,7 +126,7 @@ export default function VideoCallPage() {
         handleAvatarReady,
         handleAvatarError,
     } = useAzureAvatarEnhanced({
-        onSpeechRecognized: async (text) => {
+    onSpeechRecognized: async (text) => {
             // When speech is recognized, send to /api/chat and speak the streamed response, with message history and mood/risk
             if (text && text.trim()) {
                 setMessages(prev => [...prev, { role: "user", content: text }]);
@@ -149,9 +176,14 @@ export default function VideoCallPage() {
                             return prev;
                         });
                     }
-                    setTimeout(() => {
-                        speakText(assistantResponse);
-                    }, 100);
+                    // If a supportive message is being spoken, queue the LLM response
+                    if (isSupportiveSpeaking) {
+                        setPendingLLMResponse(assistantResponse);
+                    } else {
+                        setTimeout(() => {
+                            speakText(assistantResponse);
+                        }, 100);
+                    }
                 } catch (error) {
                     console.error("Streaming fetch failed:", error);
                     speakText("Sorry, there was a problem getting a response.");
@@ -192,6 +224,15 @@ export default function VideoCallPage() {
             videoRef.current.srcObject = stream;
         }
     }, [stream]);
+
+    // When avatar finishes speaking, if there is a pending LLM response, speak it
+    const handleSpeechEndWrapper = useCallback(() => {
+        setIsAvatarSpeaking(false);
+        if (pendingLLMResponse) {
+            speakText(pendingLLMResponse);
+            setPendingLLMResponse(null);
+        }
+    }, [pendingLLMResponse, speakText]);
 
     useEffect(() => {
         setIsAvatarSpeaking(isSpeaking);
@@ -247,7 +288,7 @@ export default function VideoCallPage() {
                             useNewImplementation={true}
                             onSpeechRecognized={handleSpeechRecognized}
                             onSpeechStart={handleSpeechStart}
-                            onSpeechEnd={handleSpeechEnd}
+                            onSpeechEnd={handleSpeechEndWrapper}
                             onAvatarReady={handleAvatarReady}
                             onError={handleAvatarError}
                         />
