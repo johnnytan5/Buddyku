@@ -32,6 +32,14 @@ export default function ProfilePage() {
 
           <div className="space-y-5">
             <div className="flex items-center p-3 bg-gray-50 rounded-xl">
+              <User className="w-5 h-5 text-blue-500 mr-4" />
+              <div className="flex-1">
+                <p className="text-sm text-gray-500 mb-1">Name</p>
+                <p className="text-gray-800 font-medium">{profileData.name}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center p-3 bg-gray-50 rounded-xl">
               <Calendar className="w-5 h-5 text-blue-500 mr-4" />
               <div className="flex-1">
                 <p className="text-sm text-gray-500 mb-1">Age</p>
