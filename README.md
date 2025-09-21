@@ -12,7 +12,7 @@ Buddyku is a full-stack mental health application that provides a supportive env
 - **Safe Space**: Non-judgmental environment for emotional expression
 - **Crisis Resources**: Malaysian mental health hotlines and support contacts
 
-### �� Journaling & Memory Management
+### 🧘‍♂️ Journaling & Memory Management
 - **Daily Journaling**: Track emotions, moods, and daily experiences
 - **Memory Jar System**: Organize memories by emotions (gratitude, joy, love, etc.)
 - **Media Attachments**: Support for images, videos, and audio recordings
@@ -245,9 +245,6 @@ npm run dev
 4. Test thoroughly
 5. Submit a pull request
 
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 🆘 Crisis Support
 
