@@ -6,6 +6,7 @@ import { SquarePen, Video } from "lucide-react";
 import { Send, Mic, X } from "lucide-react";
 import AzureAvatar from "@/components/avatar/AzureAvatar";
 import { useAzureAvatarEnhanced } from '@/hooks/useAzureAvatarEnhanced'
+import dynamic from 'next/dynamic';
 
 type Message = {
   role: "user" | "assistant";
@@ -13,9 +14,6 @@ type Message = {
   breathingSuggestion?: boolean;
 };
 
-
-// Use the BreathingModal from /modal1/page.tsx
-import dynamic from 'next/dynamic';
 const BreathingModal = dynamic(() => import('../modal1/page'), { ssr: false });
 
 export default function ChatbotPage() {
@@ -110,8 +108,26 @@ export default function ChatbotPage() {
     setMessages((prev) => [...prev, { role: "user", content: message }]);
     setInputMessage("");
 
-  // Check for 'stress' keyword
-  if (/\bstress+s*\b/i.test(message)) {
+    // Suicide risk detection
+    try {
+      const suicideRes = await fetch("/api/detect-suicide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      if (suicideRes.ok) {
+        const risk = await suicideRes.json();
+        console.log("[Suicide Risk]", { message, ...risk });
+      } else {
+        const errText = await suicideRes.text();
+        console.warn("[Suicide Risk] Detection failed:", errText);
+      }
+    } catch (err) {
+      console.warn("[Suicide Risk] Detection error:", err);
+    }
+
+    // Check for 'stress' keyword
+    if (/\bstress+s*\b/i.test(message)) {
       setTimeout(() => {
         setMessages((prev) => [
           ...prev,
@@ -148,17 +164,17 @@ export default function ChatbotPage() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let assistantResponse = "";
-    
+
       // Read the stream and update the state with each new chunk
       while (true) {
         const { value, done } = await reader.read();
         if (done) {
           break; // The stream has ended
         }
-        
+
         const chunk = decoder.decode(value, { stream: true });
         assistantResponse += chunk;
-        
+
         // Update the state with the partial response
         setMessages((prev) => {
           const lastMessage = prev[prev.length - 1];
@@ -174,7 +190,7 @@ export default function ChatbotPage() {
           }
         });
       }
-      
+
       // Once the stream is complete, add a delay before speaking the full response
       setTimeout(() => {
         speakText(assistantResponse);
@@ -211,7 +227,7 @@ export default function ChatbotPage() {
   };
 
   return (
-    <div className="flex flex-col bg-white relative w-full min-h-[calc(100vh-64px)] overflow-hidden">
+    <div className="flex flex-col bg-white relative w-full min-h-[calc(100vh-64px)]">
       {/* Top Navigation Bar */}
       <nav className="relative w-full flex items-center justify-center h-16 border-b border-gray-200 bg-white shadow-sm">
         {/* Clear Chat Button (left) */}
@@ -281,9 +297,15 @@ export default function ChatbotPage() {
         )}
       </div>
 
-      {/* Chat messages */}
+      {/* Chat messages (scrollable only this area) */}
       <div
-        className="flex-1 w-full px-4 overflow-y-auto"
+        className="w-full px-4"
+        style={{
+          flex: 1,
+          minHeight: 0,
+          maxHeight: 'calc(100vh - 480px)', // adjust as needed for header/footer
+          overflowY: 'auto',
+        }}
       >
         {messages.map((msg, idx) => (
           <div
