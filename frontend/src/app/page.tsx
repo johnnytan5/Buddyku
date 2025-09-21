@@ -8,17 +8,16 @@ export default function Home() {
     <div className="flex flex-col min-h-screen items-center justify-center p-6">
       <GradientBackground />
       {/* Logo */}
-      <div className="mb-8">
+      <div className="mb-6">
         <Image
-          src="/logo.png"
+          src="/buddyku-logo.png"
           alt="Buddyku Logo"
-          width={96}
-          height={96}
-          className="rounded-full shadow-lg"
+          width={300}
+          height={300}
         />
       </div>
       {/* App Name */}
-      <h1 className="text-4xl font-bold text-black mb-2">Buddiku</h1>
+      {/* <h1 className="text-4xl font-bold text-black mb-2">Buddyku</h1> */}
       {/* Short Description */}
       <p className="text-center text-black text-base mb-8 max-w-xs">
         Your safe space for daily reflection, guided journaling, and compassionate AI support.
@@ -30,7 +29,7 @@ export default function Home() {
           window.location.href = '/avatar';
         }}
       >
-        Get Started
+        Welcome Johnny
       </button>
     </div>
   );
