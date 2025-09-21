@@ -29,7 +29,7 @@ export default function Home() {
           window.location.href = '/avatar';
         }}
       >
-        Welcome Johnny
+        Welcome Back
       </button>
     </div>
   );
