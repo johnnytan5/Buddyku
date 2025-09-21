@@ -260,23 +260,6 @@ export default function MemoryPage() {
           </div>
         </div>
 
-        {/* Memory Carousel */}
-        {visualMedia.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6">
-            <div className="flex justify-between items-center mb-3 sm:mb-4">
-              <h3 className="text-base sm:text-lg font-semibold flex items-center">
-                <Heart className="mr-2 text-purple-600" size={18} />
-                Your Visual Memories
-              </h3>
-              <span className="text-xs sm:text-sm text-gray-500">{visualMedia.length} memories</span>
-            </div>
-            <MemoryCarousel 
-              media={visualMedia} 
-              onMediaClick={(entryDate) => setSelectedDate(entryDate)} 
-            />
-          </div>
-        )}
-
         {/* Journal Entry Section */}
         {selectedDate && (
           <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6">
@@ -389,6 +372,24 @@ export default function MemoryPage() {
             <p className="text-sm text-gray-400 mt-2">Colored dates have existing entries</p>
           </div>
         )}
+
+        {/* Memory Carousel */}
+        {visualMedia.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6">
+            <div className="flex justify-between items-center mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg font-semibold flex items-center">
+                <Heart className="mr-2 text-purple-600" size={18} />
+                Your Visual Memories
+              </h3>
+              <span className="text-xs sm:text-sm text-gray-500 mt-2">{visualMedia.length} memories</span>
+            </div>
+            <MemoryCarousel 
+              media={visualMedia} 
+              onMediaClick={(entryDate) => setSelectedDate(entryDate)} 
+            />
+          </div>
+        )}
+
       </div>
 
       {/* Floating Action Button */}
@@ -712,17 +713,15 @@ const MemoryCarousel = ({
       {/* Carousel Container */}
       <div className="relative h-64">
         <div 
-          className="flex transition-transform duration-300 ease-in-out h-full"
+          className="flex flex-nowrap transition-transform duration-300 ease-in-out h-full w-full"
           style={{ 
-            transform: `translateX(-${currentIndex * 33.333}%)`,
-            width: `${media.length * 33.333}%`
+            transform: `translateX(-${currentIndex * 100}%)`,
           }}
         >
           {media.map((item, index) => (
             <div 
               key={item.id}
-              className="w-full h-full px-2 flex-shrink-0"
-              style={{ width: `${100 / media.length}%` }}
+              className="h-full px-2 flex-shrink-0 w-[50%]"
               onClick={() => onMediaClick(item.entryDate)}
             >
               <CarouselMediaCard 
