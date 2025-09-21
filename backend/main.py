@@ -65,7 +65,11 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://frontend:3000",  # Add this for Docker
+        "http://localhost", 
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -82,6 +86,19 @@ app.include_router(suicide_detector.router, prefix="/api", tags=["suicide_detect
 @app.get("/")
 def read_root():
     return {"message": "Hello from FastAPI backend!"}
+
+# Add this to backend/main.py after the existing endpoints
+
+@app.get("/health")
+async def health_check():
+    """
+    Health check endpoint for Docker and load balancer
+    """
+    return {
+        "status": "healthy",
+        "message": "Backend service is running",
+        "timestamp": datetime.now().isoformat()
+    }
 
 @app.post("/uploadEmotionsS3")
 async def upload_emotions_s3(emotion_data: EmotionUpload):

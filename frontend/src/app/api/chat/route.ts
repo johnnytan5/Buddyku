@@ -26,9 +26,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const backendUrl = process.env.NODE_ENV === 'development' 
-      ? 'http://127.0.0.1:8000/api/chat'
-      : (process.env.FASTAPI_BACKEND_URL || 'http://127.0.0.1:8000/api/chat')
+    const backendUrl = 'http://backend:8000/api/chat'
 
     const response = await fetch(backendUrl, {
       method: 'POST',

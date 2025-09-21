@@ -38,45 +38,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Prepare the backend URL
-    const backendUrl = process.env.NODE_ENV === 'development'
-      ? 'http://127.0.0.1:8000/fetch-all-emotions'
-      : (process.env.FASTAPI_BACKEND_URL?.replace(/\/?$/, '') + '/fetch-all-emotions' || 'http://127.0.0.1:8000/fetch-all-emotions')
+    // Fix: Use hardcoded Docker service name for now
+    const backendUrl = 'http://backend:8000/fetch-all-emotions'
 
     const response = await fetch(backendUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        user_id: body.user_id,
-      }),
+      body: JSON.stringify(body)
     })
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Backend error:', errorText)
-      return NextResponse.json(
-        { 
-          error: 'Backend error', 
-          message: errorText,
-          status: response.status 
-        }, 
-        { status: response.status }
-      )
+      throw new Error(`Backend responded with status: ${response.status}`)
     }
 
-    const data: FetchAllEmotionsResponse = await response.json()
+    const data = await response.json()
     return NextResponse.json(data)
-    
   } catch (error) {
-    console.error('Error in fetch-all-emotions API route:', error)
-    
+    console.error('Error fetching emotions:', error)
     return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Failed to fetch emotions' },
       { status: 500 }
     )
   }
