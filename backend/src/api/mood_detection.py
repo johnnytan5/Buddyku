@@ -108,7 +108,6 @@ async def mood_detection(file: UploadFile = File(...)):
         mood = None
         risk_score = None
         try:
-            # The model's output is usually in result_json['output']['message']['content'][0]['text']
             text = result_json["output"]["message"]["content"][0]["text"]
 
             cleaned = re.sub(r"^```[a-zA-Z]*\\n|```$", "", text.strip())
