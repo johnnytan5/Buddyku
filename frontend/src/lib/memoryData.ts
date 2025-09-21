@@ -104,6 +104,145 @@ export const emotionDescriptions = {
 
 // Sample journal entries data
 export let journalEntriesData: Record<string, JournalEntry> = {
+  '2025-09-01': {
+    date: '2025-09-01',
+    mood: 'very-sad',
+    emotion: 'sad',
+    content: 'Woke up feeling really down. Missed my family a lot today and felt isolated at work.',
+    gratitude: ['A friend checked in on me'],
+    achievements: ['Got out of bed', 'Went to work despite feeling low'],
+    isFavorite: false,
+    mediaAttachments: []
+  },
+  '2025-09-02': {
+    date: '2025-09-02',
+    mood: 'sad',
+    emotion: 'sad',
+    content: 'Had a tough conversation with my manager. Felt misunderstood and a bit hopeless.',
+    gratitude: ['Supportive coworker'],
+    achievements: ['Expressed my feelings', 'Did not give up'],
+    isFavorite: false,
+    mediaAttachments: []
+  },
+  '2025-09-03': {
+    date: '2025-09-03',
+    mood: 'neutral',
+    emotion: 'calm',
+    content: 'A regular day. Nothing special happened, but nothing bad either.',
+    gratitude: ['Ate a good meal'],
+    achievements: ['Finished my tasks'],
+    isFavorite: false,
+    mediaAttachments: []
+  },
+  '2025-09-04': {
+    date: '2025-09-04',
+    mood: 'sad',
+    emotion: 'sad',
+    content: 'Felt lonely after coming home. Watched a sad movie and cried a little.',
+    gratitude: ['Warm blanket'],
+    achievements: ['Allowed myself to feel'],
+    isFavorite: false,
+    mediaAttachments: []
+  },
+  '2025-09-05': {
+    date: '2025-09-05',
+    mood: 'happy',
+    emotion: 'hope',
+    content: 'Had coffee with an old friend. Laughed and shared stories.',
+    gratitude: ['Friendship'],
+    achievements: ['Reached out to someone'],
+    isFavorite: false,
+    mediaAttachments: []
+  },
+  '2025-09-06': {
+    date: '2025-09-06',
+    mood: 'very-sad',
+    emotion: 'disappointed',
+    content: 'Received some bad news from home. Felt powerless and deeply sad.',
+    gratitude: ['A call from my sibling'],
+    achievements: ['Did not isolate myself'],
+    isFavorite: false,
+    mediaAttachments: []
+  },
+  '2025-09-07': {
+    date: '2025-09-07',
+    mood: 'sad',
+    emotion: 'sad',
+    content: 'Rainy day. Stayed in bed most of the time. Felt unmotivated.',
+    gratitude: ['A good book'],
+    achievements: ['Read a chapter'],
+    isFavorite: false,
+    mediaAttachments: []
+  },
+  '2025-09-09': {
+    date: '2025-09-09',
+    mood: 'very-sad',
+    emotion: 'disappointed',
+    content: 'Had an argument with a close friend. Felt regretful and anxious.',
+    gratitude: ['Friendship is worth fighting for'],
+    achievements: ['Apologized sincerely'],
+    isFavorite: false,
+    mediaAttachments: []
+  },
+   '2025-09-10': {
+    date: '2025-09-10',
+    mood: 'very-happy',
+    emotion: 'gratitude',
+    content: 'Got the job I applied for! Feeling excited about this new chapter. All the preparation and interviews finally paid off.',
+    gratitude: ['New opportunity', 'Family support'],
+    achievements: ['Successful interview', 'Career milestone'],
+    isFavorite: true,
+    mediaAttachments: [
+      {
+        id: '3',
+        type: 'image',
+        url: '/api/placeholder/400/300',
+        filename: 'job_offer.jpg',
+        caption: 'The moment I got the call!',
+        uploadedAt: new Date('2025-09-10'),
+        isFavorite: false
+      },
+      {
+        id: '4',
+        type: 'audio',
+        url: '/api/placeholder/audio',
+        filename: 'celebration_voice_note.mp3',
+        caption: 'Recording my excitement',
+        uploadedAt: new Date('2025-09-10'),
+        isFavorite: true
+      }
+    ]
+  },
+  '2025-09-11': {
+    date: '2025-09-11',
+    mood: 'sad',
+    emotion: 'sad',
+    content: 'Struggled to focus at work. Felt like I was falling behind.',
+    gratitude: ['Understanding boss'],
+    achievements: ['Asked for help'],
+    isFavorite: false,
+    mediaAttachments: []
+  },
+  '2025-09-12': {
+    date: '2025-09-12',
+    mood: 'happy',
+    emotion: 'love',
+    content: 'Spent quality time with family. Felt so connected and loved. Had deep conversations and shared stories.',
+    gratitude: ['Family time', 'Deep conversations'],
+    achievements: ['Listened actively', 'Shared my feelings'],
+    isFavorite: true,
+    mediaAttachments: []
+  },
+  '2025-09-14': {
+    date: '2025-09-14',
+    mood: 'happy',
+    emotion: 'hope',
+    content: 'Started planning my future goals and dreams. Feeling optimistic about what\'s ahead.',
+    gratitude: ['Clear vision', 'Support system'],
+    achievements: ['Created vision board', 'Set 3 new goals'],
+    isFavorite: true,
+    mediaAttachments: []
+  },
   '2025-09-15': {
     date: '2025-09-15',
     mood: 'happy',
@@ -138,75 +277,6 @@ export let journalEntriesData: Record<string, JournalEntry> = {
       }
     ]
   },
-  '2025-09-10': {
-    date: '2025-09-10',
-    mood: 'very-happy',
-    emotion: 'gratitude',
-    content: 'Got the job I applied for! Feeling excited about this new chapter. All the preparation and interviews finally paid off.',
-    gratitude: ['New opportunity', 'Family support'],
-    achievements: ['Successful interview', 'Career milestone'],
-    isFavorite: true,
-    mediaAttachments: [
-      {
-        id: '3',
-        type: 'image',
-        url: '/api/placeholder/400/300',
-        filename: 'job_offer.jpg',
-        caption: 'The moment I got the call!',
-        uploadedAt: new Date('2025-09-10'),
-        isFavorite: false
-      },
-      {
-        id: '4',
-        type: 'audio',
-        url: '/api/placeholder/audio',
-        filename: 'celebration_voice_note.mp3',
-        caption: 'Recording my excitement',
-        uploadedAt: new Date('2025-09-10'),
-        isFavorite: true
-      }
-    ]
-  },
-  '2025-09-18': {
-    date: '2025-09-18',
-    mood: 'neutral',
-    emotion: 'calm',
-    content: 'Regular day at work. Feeling okay, nothing special but nothing bad either. Just going through the motions.',
-    gratitude: ['Stable routine'],
-    achievements: ['Finished project tasks'],
-    isFavorite: false,
-    mediaAttachments: []
-  },
-  '2025-09-12': {
-    date: '2025-09-12',
-    mood: 'happy',
-    emotion: 'love',
-    content: 'Spent quality time with family. Felt so connected and loved. Had deep conversations and shared stories.',
-    gratitude: ['Family time', 'Deep conversations'],
-    achievements: ['Listened actively', 'Shared my feelings'],
-    isFavorite: true,
-    mediaAttachments: []
-  },
-  '2025-09-08': {
-    date: '2025-09-08',
-    mood: 'sad',
-    emotion: 'disappointed',
-    content: 'Didn\'t get the promotion I was hoping for. Feeling let down but trying to stay positive.',
-    gratitude: ['Learning opportunity'],
-    achievements: ['Handled rejection gracefully'],
-    isFavorite: false,
-    mediaAttachments: []
-  },
-  '2025-09-14': {
-    date: '2025-09-14',
-    mood: 'happy',
-    emotion: 'hope',
-    content: 'Started planning my future goals and dreams. Feeling optimistic about what\'s ahead.',
-    gratitude: ['Clear vision', 'Support system'],
-    achievements: ['Created vision board', 'Set 3 new goals'],
-    isFavorite: true,
-    mediaAttachments: []
-  },
   '2025-09-16': {
     date: '2025-09-16',
     mood: 'neutral',
@@ -225,6 +295,16 @@ export let journalEntriesData: Record<string, JournalEntry> = {
     gratitude: ['New friendships', 'Community spirit'],
     achievements: ['Stepped out of comfort zone', 'Made 3 new connections'],
     isFavorite: true,
+    mediaAttachments: []
+  },
+  '2025-09-18': {
+    date: '2025-09-18',
+    mood: 'neutral',
+    emotion: 'calm',
+    content: 'Regular day at work. Feeling okay, nothing special but nothing bad either. Just going through the motions.',
+    gratitude: ['Stable routine'],
+    achievements: ['Finished project tasks'],
+    isFavorite: false,
     mediaAttachments: []
   },
   '2025-09-19': {
