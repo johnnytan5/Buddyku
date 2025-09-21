@@ -373,7 +373,7 @@ export default function MemoryPage() {
           </div>
         )}
 
-        {/* Memory Carousel */}
+        {/* Memory Carousel
         {visualMedia.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6">
             <div className="flex justify-between items-center mb-3 sm:mb-4">
@@ -388,7 +388,7 @@ export default function MemoryPage() {
               onMediaClick={(entryDate) => setSelectedDate(entryDate)} 
             />
           </div>
-        )}
+        )} */}
 
       </div>
 
