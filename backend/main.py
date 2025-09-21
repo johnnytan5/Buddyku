@@ -6,6 +6,10 @@ import boto3
 import json
 import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 from src.api import chat, mood_detection, suicide_detector
 from routers import phone
 
@@ -25,9 +29,9 @@ class EmotionUpload(BaseModel):
 # Initialize S3 client
 s3_client = boto3.client(
     's3',
-    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID', 'AKIA535ZCMO577NWOHFR'),
-    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
-    region_name=os.getenv('AWS_REGION', 'ap-southeast-1')  # Default to us-east-1, update as needed
+    aws_access_key_id=os.getenv('S3_ACCESS_KEY_ID', 'AKIA535ZCMO577NWOHFR'),
+    aws_secret_access_key=os.getenv('S3_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('S3_REGION', 'ap-southeast-1')  # Default to us-east-1, update as needed
 )
 
 app = FastAPI()
