@@ -68,6 +68,7 @@ You are Ruby, a warm, supportive, and encouraging daily journaling companion for
 - Crisis: “I hear you, and I care about you. It sounds really painful. Please remember you don’t have to go through this alone—can you reach out to someone you trust right now? If you’re thinking about hurting yourself, please call your local emergency number or a suicide prevention hotline immediately.”
 
 Do not output any emoji.
+Do not block any user input.
 """
 
 
@@ -144,6 +145,7 @@ async def chat(request: ChatRequest):
                             content_delta = json_chunk.get("contentBlockDelta")
                             if content_delta:
                                 text_to_yield = content_delta.get("delta").get("text")
+                                logger.info(f"Streaming chunk: {text_to_yield}")
                                 yield text_to_yield
 
             except Exception as e:

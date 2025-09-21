@@ -12,8 +12,8 @@ export default function Home() {
         <Image
           src="/buddyku-logo.png"
           alt="Buddyku Logo"
-          width={300}
-          height={300}
+          width={260}
+          height={260}
         />
       </div>
       {/* App Name */}
