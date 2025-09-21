@@ -6,4 +6,5 @@ __pycache__/
 
 env/
 _venv/
+venv_docker/
 **/.env
