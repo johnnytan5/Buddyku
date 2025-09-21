@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Heart, Sparkles, Clock, TrendingUp, ChevronRight } from 'lucide-react';
+import { Heart, Sparkles, ChevronRight, Loader2 } from 'lucide-react';
 import { 
   JournalEntry, 
   MemoryJarItem, 
@@ -11,7 +11,7 @@ import {
 } from '@/lib/memoryData';
 
 interface EmotionJarConfig {
-  emotion: 'joy' | 'hope' | 'love' | 'calm' | 'strength' | 'comfort' | 'gratitude' | 'belonging' | 'sad' | 'disappointed';
+  emotion: 'joy' | 'hope' | 'love' | 'calm' | 'strength' | 'comfort' | 'gratitude' | 'belonging' | 'sadness' | 'disappointment';
   name: string;
   emoji: string;
   colors: {
@@ -131,7 +131,7 @@ const EMOTION_JARS: EmotionJarConfig[] = [
     description: 'Connection and feeling at home'
   },
   {
-    emotion: 'sad',
+    emotion: 'sadness',
     name: 'Sadness Jar',
     emoji: '😢',
     colors: {
@@ -144,7 +144,7 @@ const EMOTION_JARS: EmotionJarConfig[] = [
     description: 'Moments of sadness and reflection'
   },
   {
-    emotion: 'disappointed',
+    emotion: 'disappointment',
     name: 'Disappointment Jar',
     emoji: '😞',
     colors: {
@@ -436,21 +436,12 @@ const MemoryCarousel = ({
                   )}
 
                   {/* Memory Footer */}
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-center text-sm">
                     <span className="text-gray-500 flex items-center gap-1">
                       📅 {new Date(memory.date).toLocaleDateString('en-US', { 
                         weekday: 'long'
                       })}
                     </span>
-                    <button 
-                      className="font-medium hover:underline transition-all"
-                      style={{ color: jarConfig.colors.primary }}
-                      onClick={() => {
-                        console.log(`View full entry for ${memory.date}`);
-                      }}
-                    >
-                      View full entry →
-                    </button>
                   </div>
                 </div>
               </div>
@@ -701,35 +692,13 @@ const RandomMemoryPopup = ({
   );
 };
 
-// Component: Memory Statistics
-const MemoryStats = ({ emotionJars }: { emotionJars: Record<string, MemoryJarItem[]> }) => {
-  const totalMemories = Object.values(emotionJars).flat().length;
-  const favoriteMemories = Object.values(emotionJars).flat().filter(m => m.isFavorite).length;
-  
-  return (
-    <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
-      <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center">
-        <TrendingUp className="mr-2 text-blue-500" size={20} />
-        Your Memory Collection
-      </h3>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-blue-600">{totalMemories}</div>
-          <div className="text-sm text-gray-600">Total Memories</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-red-500">{favoriteMemories}</div>
-          <div className="text-sm text-gray-600">Favorites</div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Main Explore Page Component
 export default function ExplorePage() {
   const [selectedJar, setSelectedJar] = useState<EmotionJarConfig | null>(null);
   const [emotionJars, setEmotionJars] = useState<Record<string, MemoryJarItem[]>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [randomMemoryPopup, setRandomMemoryPopup] = useState<{
     isOpen: boolean;
     memory: MemoryJarItem | null;
@@ -740,23 +709,60 @@ export default function ExplorePage() {
     jarConfig: null
   });
 
-  
+  // Fetch emotions from API
+  const fetchEmotions = async () => {
+    try {
+      setIsLoading(true);
+      setHasError(false);
+      
+      const response = await fetch('http://localhost:8000/fetch-all-emotions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: 'test_user_123'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch emotions');
+      }
+
+      const data = await response.json();
+      
+      // Debug: Log the API response
+      console.log('API Response:', data);
+      console.log('Journal entries count:', Object.keys(data.journal_entries).length);
+      
+      // Transform the API response to the format expected by the UI
+      const journalEntries: Record<string, JournalEntry> = {};
+      
+      Object.entries(data.journal_entries).forEach(([key, entry]: [string, any]) => {
+        journalEntries[key] = entry as JournalEntry;
+        console.log(`Entry ${key}:`, entry.emotion, entry.content.substring(0, 50) + '...');
+      });
+      
+      // Transform to emotion-categorized memories
+      const distributedMemories = distributeMemoriesToJars(journalEntries);
+      
+      // Debug: Log the distributed memories
+      console.log('Distributed memories:', distributedMemories);
+      console.log('Gratitude memories count:', distributedMemories.gratitude?.length || 0);
+      
+      setEmotionJars(distributedMemories);
+      
+    } catch (error) {
+      console.error('Error fetching emotions:', error);
+      setHasError(true);
+      setEmotionJars({});
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Transform journal entries to emotion-categorized memories
-    const distributedMemories = distributeMemoriesToJars(getAllJournalEntries());
-    setEmotionJars(distributedMemories);
-    
-    // Listen for data changes
-    const handleDataChange = () => {
-      const updatedMemories = distributeMemoriesToJars(getAllJournalEntries());
-      setEmotionJars(updatedMemories);
-    };
-    
-    window.addEventListener('journalDataChanged', handleDataChange);
-    
-    return () => {
-      window.removeEventListener('journalDataChanged', handleDataChange);
-    };
+    fetchEmotions();
   }, []);
 
   const handleJarClick = (config: EmotionJarConfig) => {
@@ -968,6 +974,83 @@ export default function ExplorePage() {
     );
   }
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+        <div className="max-w-md mx-auto">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2 flex items-center justify-center">
+              <Sparkles className="mr-2 text-yellow-500" size={28} />
+              Emotion Jars
+            </h1>
+          </div>
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              {/* Elegant floating orbs animation */}
+              <div className="relative mb-8">
+                <div className="w-16 h-16 mx-auto relative">
+                  {/* Main orb */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 rounded-full animate-pulse shadow-lg"></div>
+                  {/* Floating particles */}
+                  <div className="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                  <div className="absolute top-1 -left-3 w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '0.6s' }}></div>
+                </div>
+                {/* Ripple effect */}
+                <div className="absolute inset-0 w-16 h-16 mx-auto border-2 border-blue-300 rounded-full animate-ping opacity-20"></div>
+                <div className="absolute inset-0 w-16 h-16 mx-auto border border-purple-300 rounded-full animate-ping opacity-10" style={{ animationDelay: '0.5s' }}></div>
+              </div>
+              
+              {/* Elegant text with gradient */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Curating Your Emotions
+                </h3>
+                
+                {/* Progress dots */}
+                <div className="flex justify-center space-x-1">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (hasError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+        <div className="max-w-md mx-auto">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2 flex items-center justify-center">
+              <Sparkles className="mr-2 text-yellow-500" size={28} />
+              Emotion Jars
+            </h1>
+          </div>
+          <div className="bg-white rounded-2xl p-8 shadow-lg text-center">
+            <div className="text-4xl mb-4">😔</div>
+            <h3 className="text-lg font-semibold text-gray-600 mb-2">No records available</h3>
+            <p className="text-gray-500 mb-4">
+              Unable to load your emotions. Please try refreshing the page.
+            </p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
       <div className="max-w-md mx-auto">
@@ -980,8 +1063,6 @@ export default function ExplorePage() {
           <p className="text-gray-600">Your memories, organized by emotions</p>
         </div>
 
-        {/* Memory Statistics */}
-        <MemoryStats emotionJars={emotionJars} />
 
         {/* Emotion Jars Grid */}
         <div className="grid grid-cols-2 gap-4 mb-6">
@@ -995,51 +1076,6 @@ export default function ExplorePage() {
           ))}
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg">
-          <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center">
-            <Clock className="mr-2 text-purple-500" size={20} />
-            Quick Actions
-          </h3>
-          <div className="space-y-3">
-            <button 
-              className="w-full bg-gradient-to-r from-purple-500 to-blue-500 text-white py-3 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-purple-300/50 hover:from-purple-600 hover:to-blue-600 active:scale-95 active:shadow-lg group relative overflow-hidden"
-              onClick={getRandomMemory}
-            >
-              {/* Background animation */}
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-lg"></div>
-              
-              {/* Sparkle effects */}
-              <div className="absolute inset-0 overflow-hidden rounded-lg">
-                <div className="absolute top-2 left-4 text-xs opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-all duration-500">✨</div>
-                <div className="absolute top-3 right-6 text-xs opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-all duration-700 delay-200">⭐</div>
-                <div className="absolute bottom-3 left-8 text-xs opacity-0 group-hover:opacity-100 group-hover:animate-bounce transition-all duration-600 delay-100">💫</div>
-              </div>
-              
-              {/* Button content */}
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                <span className="group-hover:animate-spin transition-transform duration-500">🎲</span>
-                <span className="group-hover:tracking-wide transition-all duration-300">Random Memory</span>
-              </span>
-            </button>
-            <button className="w-full bg-gradient-to-r from-pink-500 to-red-500 text-white py-3 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-pink-300/50 hover:from-pink-600 hover:to-red-600 active:scale-95 active:shadow-lg group relative overflow-hidden">
-              {/* Background animation */}
-              <div className="absolute inset-0 bg-gradient-to-r from-pink-400 to-red-400 opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-lg"></div>
-              
-              {/* Sparkle effects */}
-              <div className="absolute inset-0 overflow-hidden rounded-lg">
-                <div className="absolute top-2 right-4 text-xs opacity-0 group-hover:opacity-100 group-hover:animate-bounce transition-all duration-500">💖</div>
-                <div className="absolute bottom-2 left-4 text-xs opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-all duration-700 delay-200">🌟</div>
-                <div className="absolute top-3 left-6 text-xs opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-all duration-600 delay-100">✨</div>
-              </div>
-              
-              {/* Button content */}
-              <span className="relative z-10 group-hover:tracking-wide transition-all duration-300">
-                Today's Highlights
-              </span>
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Random Memory Popup */}

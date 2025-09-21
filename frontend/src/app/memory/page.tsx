@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, BookOpen, Heart, Image, Video, Mic, X, Play } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, BookOpen, Heart, Image, Video, Mic, X, Play, Loader2 } from 'lucide-react';
 import { 
   MediaAttachment, 
   JournalEntry, 
@@ -16,7 +16,53 @@ export default function MemoryPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showEmergencyKit, setShowEmergencyKit] = useState(false);
-  const [journalEntries, setJournalEntries] = useState<Record<string, JournalEntry>>(() => getAllJournalEntries());
+  const [journalEntries, setJournalEntries] = useState<Record<string, JournalEntry>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  // Fetch journal entries from API
+  const fetchJournalEntries = async () => {
+    try {
+      setIsLoading(true);
+      setHasError(false);
+      
+      const response = await fetch('http://localhost:8000/fetch-all-emotions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: 'test_user_123'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch journal entries');
+      }
+
+      const data = await response.json();
+      
+      // Transform the API response to the format expected by the UI
+      const journalEntries: Record<string, JournalEntry> = {};
+      
+      Object.entries(data.journal_entries).forEach(([key, entry]: [string, any]) => {
+        journalEntries[key] = entry as JournalEntry;
+      });
+      
+      setJournalEntries(journalEntries);
+      
+    } catch (error) {
+      console.error('Error fetching journal entries:', error);
+      setHasError(true);
+      setJournalEntries({});
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchJournalEntries();
+  }, []);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -136,6 +182,95 @@ export default function MemoryPage() {
   };
 
   const favoriteMemories = getFavoriteMemories();
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+        <div className="bg-white shadow-sm p-2 sm:p-4">
+          <div className="flex justify-between items-center max-w-sm mx-auto sm:max-w-none">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-800">Memory & Journal</h1>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            {/* Elegant memory loading animation */}
+            <div className="relative mb-8">
+              <div className="w-20 h-20 mx-auto relative">
+                {/* Main memory orb */}
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 rounded-full animate-pulse shadow-xl"></div>
+                
+                {/* Floating memory fragments */}
+                <div className="absolute -top-3 -right-3 w-5 h-5 bg-blue-400 rounded-full animate-bounce shadow-lg" style={{ animationDelay: '0.1s' }}>
+                  <div className="w-full h-full bg-white/30 rounded-full animate-ping"></div>
+                </div>
+                <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-green-400 rounded-full animate-bounce shadow-lg" style={{ animationDelay: '0.3s' }}>
+                  <div className="w-full h-full bg-white/30 rounded-full animate-ping"></div>
+                </div>
+                <div className="absolute top-2 -left-4 w-3 h-3 bg-purple-400 rounded-full animate-bounce shadow-lg" style={{ animationDelay: '0.5s' }}>
+                  <div className="w-full h-full bg-white/30 rounded-full animate-ping"></div>
+                </div>
+                <div className="absolute -top-1 -right-6 w-2 h-2 bg-pink-400 rounded-full animate-bounce shadow-lg" style={{ animationDelay: '0.7s' }}>
+                  <div className="w-full h-full bg-white/30 rounded-full animate-ping"></div>
+                </div>
+              </div>
+              
+              {/* Concentric ripple waves */}
+              <div className="absolute inset-0 w-20 h-20 mx-auto border-2 border-amber-300 rounded-full animate-ping opacity-30"></div>
+              <div className="absolute inset-0 w-20 h-20 mx-auto border border-orange-300 rounded-full animate-ping opacity-20" style={{ animationDelay: '0.3s' }}></div>
+              <div className="absolute inset-0 w-20 h-20 mx-auto border border-red-300 rounded-full animate-ping opacity-10" style={{ animationDelay: '0.6s' }}></div>
+            </div>
+            
+            {/* Elegant text with warm gradient */}
+            <div className="space-y-4">
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 bg-clip-text text-transparent">
+                Preserving Your Memories
+              </h3>
+              
+              {/* Elegant progress indicator */}
+              <div className="flex justify-center space-x-2">
+                <div className="w-3 h-3 bg-amber-400 rounded-full animate-bounce shadow-sm"></div>
+                <div className="w-3 h-3 bg-orange-400 rounded-full animate-bounce shadow-sm" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-3 h-3 bg-red-400 rounded-full animate-bounce shadow-sm" style={{ animationDelay: '0.4s' }}></div>
+                <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce shadow-sm" style={{ animationDelay: '0.6s' }}></div>
+              </div>
+              
+              {/* Subtle shimmer effect */}
+              <div className="w-32 h-1 bg-gradient-to-r from-transparent via-amber-300 to-transparent rounded-full animate-pulse mx-auto"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (hasError) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+        <div className="bg-white shadow-sm p-2 sm:p-4">
+          <div className="flex justify-between items-center max-w-sm mx-auto sm:max-w-none">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-800">Memory & Journal</h1>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-4xl mb-4">😔</div>
+            <h3 className="text-lg font-semibold text-gray-600 mb-2">No records available</h3>
+            <p className="text-gray-500 mb-4">
+              Unable to load your memories. Please try refreshing the page.
+            </p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
@@ -947,7 +1082,7 @@ const MediaAttachmentCard = ({ media }: { media: MediaAttachment }) => {
           <p className="text-xs text-gray-500 leading-relaxed">{media.caption}</p>
         )}
         <p className="text-xs text-gray-400 mt-1">
-          {media.uploadedAt.toLocaleDateString()}
+          {new Date(media.uploadedAt).toLocaleDateString()}
         </p>
       </div>
     </div>
