@@ -12,7 +12,7 @@ export interface MediaAttachment {
 export interface JournalEntry {
   date: string;
   mood: 'very-sad' | 'sad' | 'neutral' | 'happy' | 'very-happy';
-  emotion?: 'joy' | 'hope' | 'love' | 'calm' | 'strength' | 'comfort' | 'gratitude' | 'belonging' | 'sad' | 'disappointed';
+  emotion?: 'joy' | 'hope' | 'love' | 'calm' | 'strength' | 'comfort' | 'gratitude' | 'belonging' | 'sadness' | 'disappointment';
   
   // Core memory content
   title?: string; // Short, memorable title for this entry
@@ -34,7 +34,7 @@ export interface MemoryJarItem {
   id: string;
   type: 'journal' | 'gratitude' | 'achievement' | 'media';
   content: string;
-  emotion: 'joy' | 'hope' | 'love' | 'calm' | 'strength' | 'comfort' | 'gratitude' | 'belonging' | 'sad' | 'disappointed';
+  emotion: 'joy' | 'hope' | 'love' | 'calm' | 'strength' | 'comfort' | 'gratitude' | 'belonging' | 'sadness' | 'disappointment';
   date: string;
   isFavorite: boolean;
   mediaUrl?: string;
@@ -54,8 +54,8 @@ export const moodToEmotionMap: Record<JournalEntry['mood'], JournalEntry['emotio
   'very-happy': 'joy',
   'happy': 'joy',
   'neutral': 'calm',
-  'sad': 'sad',
-  'very-sad': 'disappointed'
+  'sad': 'sadness',
+  'very-sad': 'disappointment'
 };
 
 // Simple emotion descriptions
@@ -92,11 +92,11 @@ export const emotionDescriptions = {
     title: 'Sense of Belonging',
     description: 'The beautiful feeling of being accepted and valued. When feeling part of a group, being understood, or finding your community.'
   },
-  'sad': {
+  'sadness': {
     title: 'Gentle Sadness',
     description: 'Tender emotions that need acknowledgment and care. During losses, missing someone, or processing difficult but natural feelings.'
   },
-  'disappointed': {
+  'disappointment': {
     title: 'Learning from Disappointment',
     description: 'Growing through unmet expectations with resilience. When plans don\'t work out, facing setbacks, or finding strength in difficult moments.'
   }
@@ -358,58 +358,14 @@ export const transformEntryToMemories = (entry: JournalEntry, date: string): Mem
     ]
   });
   
-  // Add gratitude items with simple descriptions
-  entry.gratitude.forEach((item, index) => {
-    memories.push({
-      id: `gratitude-${date}-${index}`,
-      type: 'gratitude',
-      content: item,
-      description: `Grateful for ${item.toLowerCase()} during ${entry.location || 'this memorable day'}`,
-      emotion: 'gratitude',
-      date,
-      isFavorite: false,
-      sourceEntryId: date,
-      location: entry.location,
-      intensity: 3,
-      context: 'gratitude reflection',
-      tags: ['gratitude', ...(entry.location ? [`location:${entry.location}`] : [])]
-    });
-  });
+  // Note: Individual gratitude items are not created as separate memories
+  // Only the main journal entry is shown in the gratitude jar
   
-  // Add achievements with context
-  entry.achievements.forEach((item, index) => {
-    memories.push({
-      id: `achievement-${date}-${index}`,
-      type: 'achievement',
-      content: item,
-      description: `Successfully ${item.toLowerCase()} - feeling proud of this accomplishment`,
-      emotion: 'strength',
-      date,
-      isFavorite: false,
-      sourceEntryId: date,
-      intensity: 4, // Achievements typically feel strong
-      context: 'personal accomplishment',
-      tags: ['achievement', 'personal-growth']
-    });
-  });
+  // Note: Individual achievement items are not created as separate memories
+  // Only the main journal entry is shown in emotion jars
   
-  // Add media memories with simple descriptions
-  entry.mediaAttachments.forEach(media => {
-    memories.push({
-      id: `media-${media.id}`,
-      type: 'media',
-      content: media.caption || media.filename,
-      description: `${media.caption} - captured during ${entry.location || 'this memorable moment'}`,
-      emotion: emotion,
-      date,
-      isFavorite: media.isFavorite || false,
-      mediaUrl: media.url,
-      sourceEntryId: date,
-      location: entry.location,
-      context: `${media.type} memory`,
-      tags: ['media', media.type, ...(entry.location ? [`location:${entry.location}`] : [])]
-    });
-  });
+  // Note: Media attachments are not created as separate memories
+  // Only the main journal entry is shown in emotion jars
   
   return memories;
 };
@@ -424,16 +380,24 @@ export const distributeMemoriesToJars = (entries: Record<string, JournalEntry>) 
     'comfort': [],
     'gratitude': [],
     'belonging': [],
-    'sad': [],
-    'disappointed': []
+    'sadness': [],
+    'disappointment': []
   };
   
+  console.log('distributeMemoriesToJars - Input entries:', Object.keys(entries));
+  
   Object.entries(entries).forEach(([date, entry]) => {
+    console.log(`Processing entry ${date}: emotion=${entry.emotion}, gratitude items=${entry.gratitude?.length || 0}`);
     const memories = transformEntryToMemories(entry, date);
+    console.log(`Generated ${memories.length} memories for ${date}`);
+    
     memories.forEach(memory => {
+      console.log(`Memory: type=${memory.type}, emotion=${memory.emotion}, content=${memory.content.substring(0, 30)}...`);
       emotionJars[memory.emotion].push(memory);
     });
   });
+  
+  console.log('Final emotion jars counts:', Object.entries(emotionJars).map(([emotion, memories]) => `${emotion}: ${memories.length}`));
   
   return emotionJars;
 };
