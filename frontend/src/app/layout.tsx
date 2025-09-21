@@ -5,7 +5,7 @@ import "./globals.css";
 import {
   MessageCircleIcon,
   BrainIcon,
-  SearchIcon,
+  SmileIcon,
   CircleUserIcon,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -48,7 +48,7 @@ export default function RootLayout({
           >
             <Tab icon={<MessageCircleIcon size={24} />} label="Chat" href="/avatar" />
             <Tab icon={<BrainIcon size={24} />} label="Memory" href="/memory" />
-            <Tab icon={<SearchIcon size={24} />} label="Explore" href="/explore" />
+            <Tab icon={<SmileIcon size={24} />} label="Emotion" href="/explore" />
             <Tab icon={<CircleUserIcon size={24} />} label="Profile" href="/profile" />
           </nav>
         )}
