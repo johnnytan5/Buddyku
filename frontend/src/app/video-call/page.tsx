@@ -43,7 +43,7 @@ export default function VideoCallPage() {
                     let success = false;
                     // Try primary endpoint
                     try {
-                        const resp = await fetch('http://13.212.142.58/predict-mood', {
+                        const resp = await fetch('http://13.229.59.23/predict-mood', {
                             method: 'POST',
                             body: formData
                         });
