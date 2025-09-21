@@ -715,7 +715,7 @@ export default function ExplorePage() {
       setIsLoading(true);
       setHasError(false);
       
-      const response = await fetch('http://localhost:8000/fetch-all-emotions', {
+      const response = await fetch('/api/fetch-all-emotions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
