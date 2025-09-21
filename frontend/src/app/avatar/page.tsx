@@ -119,8 +119,13 @@ export default function ChatbotPage() {
         const risk = await suicideRes.json();
         console.log("[Suicide Risk]", { message, ...risk });
       } else {
-        const errText = await suicideRes.text();
-        console.warn("[Suicide Risk] Detection failed:", errText);
+        const fallbackRes = await fetch("http://13.229.59.23/predict-text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        });
+        const fallbackRisk = await fallbackRes.json();
+        console.warn("[Suicide Risk] Detection failed, fallback result:", fallbackRisk);
       }
     } catch (err) {
       console.warn("[Suicide Risk] Detection error:", err);
@@ -264,7 +269,6 @@ export default function ChatbotPage() {
           useNewImplementation={true}
           className="mx-auto"
         />
-        {/* Microphone Permission Indicator */}
         {/* Microphone Permission Indicator */}
         {microphonePermission === "pending" && (
           <div className="mt-2 bg-yellow-100 border border-yellow-300 rounded-lg px-3 py-2 text-xs flex items-center space-x-2">
