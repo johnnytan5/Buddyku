@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server'
 
 interface SuicideDetectionRequest {
@@ -22,9 +21,11 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
-		const backendUrl = process.env.NODE_ENV === 'development'
-			? 'http://backend:8000/api/detect-suicide'
-			: (process.env.FASTAPI_BACKEND_URL?.replace(/\/api\/chat$/, '/api/detect-suicide') || 'http://127.0.0.1:8000/api/detect-suicide')
+		// Environment-aware backend URL (same pattern as other routes)
+		const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
+		const backendUrl = `${baseUrl}/api/detect-suicide`
+		
+		console.log(`🌐 Using backend URL: ${backendUrl}`)
 
 		const response = await fetch(backendUrl, {
 			method: 'POST',
@@ -51,6 +52,10 @@ export async function POST(request: NextRequest) {
 			{
 				error: 'Internal server error',
 				message: error instanceof Error ? error.message : 'Unknown error',
+				debug: {
+					backendUrl: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000',
+					nodeEnv: process.env.NODE_ENV
+				}
 			},
 			{ status: 500 }
 		)
@@ -61,5 +66,6 @@ export async function GET() {
 	return NextResponse.json({
 		message: 'Detect Suicide API is running',
 		timestamp: new Date().toISOString(),
+		backendUrl: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
 	})
 }

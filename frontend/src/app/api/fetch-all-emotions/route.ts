@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Fix: Use hardcoded Docker service name for now
-    const backendUrl = 'http://backend:8000/fetch-all-emotions'
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
+    const backendUrl = `${baseUrl}/api/chat`
 
     const response = await fetch(backendUrl, {
       method: 'POST',

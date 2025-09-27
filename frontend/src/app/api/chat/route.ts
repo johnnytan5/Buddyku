@@ -26,7 +26,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const backendUrl = 'http://backend:8000/api/chat'
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
+    const backendUrl = `${baseUrl}/api/chat`
 
     const response = await fetch(backendUrl, {
       method: 'POST',
