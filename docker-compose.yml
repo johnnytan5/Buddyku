@@ -9,6 +9,8 @@ services:
     environment:
       - PYTHONPATH=/app
       - NODE_ENV=production
+      - DOCKER_CONTAINER=true
+      - BACKEND_URL=https://5de71359c4a7.ngrok-free.app
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -29,6 +31,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - DOCKER_CONTAINER=true
       - NEXT_PUBLIC_API_URL=http://backend:8000
       - FASTAPI_BACKEND_URL=http://backend:8000
     depends_on:

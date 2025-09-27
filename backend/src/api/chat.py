@@ -5,6 +5,7 @@ import logging
 import boto3
 import json
 import os
+import openai
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -20,21 +21,21 @@ router = APIRouter()
 
 headers = {"Cache-Control": "no-cache", "Connection": "keep-alive"}
 
-# Initialize the Bedrock Runtime client
+# Initialize OpenAI client
 try:
-    bedrock_runtime = boto3.client(
-        service_name='bedrock-runtime',
-        region_name=os.getenv("AWS_REGION", "us-east-1")
-    )
-    # Log successful connection
-    logger.info("Successfully created Bedrock Runtime client.")
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+    if openai.api_key:
+        logger.info("Successfully configured OpenAI client.")
+    else:
+        logger.warning("OpenAI API key not found. Please set OPENAI_API_KEY in your .env file.")
 except Exception as e:
-    # Log failed connection
-    logger.error(f"Failed to create Bedrock client: {e}")
-    bedrock_runtime = None
+    logger.error(f"Failed to configure OpenAI client: {e}")
 
-# Model ID for Nova Lite
-MODEL_ID = "amazon.nova-lite-v1:0"
+# Keep Bedrock as fallback (commented out for now)
+bedrock_runtime = None
+
+# Model ID for Titan (usually more accessible)
+MODEL_ID = "amazon.titan-text-express-v1"
 
 SYSTEM_PROMPT = """
 **Role & Personality**
@@ -77,8 +78,8 @@ async def chat(request: ChatRequest):
     """
     Endpoint to stream responses from an AWS Bedrock model using the InvokeModelWithResponseStream 'messages' API.
     """
-    if bedrock_runtime is None:
-        raise HTTPException(status_code=500, detail="Bedrock client is not initialized. Check your AWS credentials and region.")
+    if not openai.api_key:
+        raise HTTPException(status_code=500, detail="OpenAI API key is not configured. Please set OPENAI_API_KEY in your .env file.")
 
     try:
 
@@ -126,27 +127,37 @@ async def chat(request: ChatRequest):
         # This generator function will handle the streaming logic
         async def event_generator():
             try:
-                response = bedrock_runtime.invoke_model_with_response_stream(
-                    modelId=MODEL_ID,
-                    body=body,
-                    contentType='application/json',
-                    accept='application/json'
-                )
-
-                stream = response.get('body')
-                if stream:
-                    for event in stream:
-                        chunk = event.get('chunk')
-                        if chunk:
-                            # Parse the JSON response chunk
-                            json_chunk = json.loads(chunk.get('bytes').decode('utf-8'))
-
-                            # The streaming text is now in contentBlockDelta
-                            content_delta = json_chunk.get("contentBlockDelta")
-                            if content_delta:
-                                text_to_yield = content_delta.get("delta").get("text")
-                                logger.info(f"Streaming chunk: {text_to_yield}")
-                                yield text_to_yield
+                # Use OpenAI instead of Bedrock
+                if openai.api_key:
+                    # Prepare messages for OpenAI in correct format
+                    openai_messages = [
+                        {"role": "system", "content": system_prompt}
+                    ]
+                    
+                    # Convert message history to proper format
+                    for msg in messages_list:
+                        openai_messages.append({
+                            "role": msg["role"],
+                            "content": msg["content"][0]["text"] if isinstance(msg["content"], list) else msg["content"]
+                        })
+                    
+                    # Call OpenAI API with correct format
+                    response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=openai_messages,
+                        max_tokens=512,
+                        temperature=0.5,
+                        stream=True
+                    )
+                    
+                    # Stream the response
+                    for chunk in response:
+                        if chunk.choices[0].delta.content:
+                            text_to_yield = chunk.choices[0].delta.content
+                            logger.info(f"Streaming chunk: {text_to_yield}")
+                            yield text_to_yield
+                else:
+                    yield "ERROR: OpenAI API key not configured. Please set OPENAI_API_KEY in your .env file."
 
             except Exception as e:
                 logger.error(f"An error occurred during streaming: {e}")

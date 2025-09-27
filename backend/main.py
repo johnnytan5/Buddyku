@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 from src.api import chat, mood_detection, suicide_detector
-from routers import phone
+from routers import phone, voice_webhooks, ai_calling
 
 # Define valid emotions
 VALID_EMOTIONS = [
@@ -78,6 +78,8 @@ app.add_middleware(
 
 # Include all routers
 app.include_router(phone.router)
+app.include_router(voice_webhooks.router)
+app.include_router(ai_calling.router)
 app.include_router(chat.router, prefix="/api", tags=["chat"])
 app.include_router(mood_detection.router, prefix="/api", tags=["mood_detection"])
 app.include_router(suicide_detector.router, prefix="/api", tags=["suicide_detector"])
