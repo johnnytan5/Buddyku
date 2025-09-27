@@ -224,3 +224,5 @@ __marimo__/
 __pycache__/
 **/__pycache__/
 backend/src/
+*.keras
+*.pkl
