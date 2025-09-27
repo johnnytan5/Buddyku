@@ -219,3 +219,8 @@ __marimo__/
 /notebook/data/*
 
 /notebook
+.DS_Store
+**/.DS_Store
+__pycache__/
+**/__pycache__/
+backend/src/
