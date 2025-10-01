@@ -6,3 +6,4 @@ twilio
 python-multipart==0.0.6
 requests==2.31.0
 openai==0.28.1
+PyJWT==2.8.0

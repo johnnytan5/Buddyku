@@ -3,9 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Literal, Dict, List, Any
 import boto3
+from boto3.dynamodb.conditions import Attr
 import json
 import os
-from datetime import datetime
+import hashlib
+import jwt
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -53,12 +56,46 @@ class EmotionBatchUpload(BaseModel):
 class UserEmotionFetch(BaseModel):
     user_id: str
 
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class UserRegistration(BaseModel):
+    email: str
+    password: str
+    name: str
+    phone: str
+    emergency_contact_name: str = None
+    emergency_contact_phone: str = None
+    
+    class Config:
+        # Allow extra fields to be ignored
+        extra = "ignore"
+
+class UserProfile(BaseModel):
+    user_id: str
+    email: str
+    name: str
+    phone: str
+    emergency_contact_name: str = None
+    emergency_contact_phone: str = None
+    created_at: str = None
+    last_login: str = None
+
 # Initialize S3 client
 s3_client = boto3.client(
     's3',
-    aws_access_key_id=os.getenv('S3_ACCESS_KEY_ID', 'AKIA535ZCMO577NWOHFR'),
+    aws_access_key_id=os.getenv('S3_ACCESS_KEY_ID'),
     aws_secret_access_key=os.getenv('S3_SECRET_ACCESS_KEY'),
-    region_name=os.getenv('S3_REGION', 'ap-southeast-1')  # Default to us-east-1, update as needed
+    region_name=os.getenv('S3_REGION')
+)
+
+# Initialize DynamoDB client 
+dynamodb = boto3.resource(
+    'dynamodb',
+    aws_access_key_id=os.getenv('S3_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('S3_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('S3_REGION')
 )
 
 app = FastAPI()
@@ -84,6 +121,11 @@ app.include_router(chat.router, prefix="/api", tags=["chat"])
 app.include_router(mood_detection.router, prefix="/api", tags=["mood_detection"])
 app.include_router(suicide_detector.router, prefix="/api", tags=["suicide_detector"])
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "ok", "message": "Server is running"}
+
 
 @app.get("/")
 def read_root():
@@ -105,7 +147,7 @@ async def health_check():
 @app.post("/uploadEmotionsS3")
 async def upload_emotions_s3(emotion_data: EmotionUpload):
     """
-    Upload emotion data to S3 bucket 'emotion-jar-memory' in frontend-compatible format
+    Upload emotion data to S3 bucket 'emotion-jar-memories' in frontend-compatible format
     
     Parameters:
     - user_id: User identifier
@@ -157,7 +199,7 @@ async def upload_emotions_s3(emotion_data: EmotionUpload):
         
         # Upload to S3
         s3_client.put_object(
-            Bucket='emotion-jar-memory',
+            Bucket='emotion-jar-memories',
             Key=s3_key,
             Body=json_data,
             ContentType='application/json'
@@ -167,7 +209,7 @@ async def upload_emotions_s3(emotion_data: EmotionUpload):
             "success": True,
             "message": "Emotion data uploaded successfully",
             "s3_key": s3_key,
-            "bucket": "emotion-jar-memory"
+            "bucket": "emotion-jar-memories"
         }
         
     except Exception as e:
@@ -179,7 +221,7 @@ async def upload_emotions_s3(emotion_data: EmotionUpload):
 @app.post("/uploadEmotionsS3-batch")
 async def upload_emotions_s3_batch(batch_data: EmotionBatchUpload):
     """
-    Upload multiple emotion entries to S3 bucket 'emotion-jar-memory' in batch
+    Upload multiple emotion entries to S3 bucket 'emotion-jar-memories' in batch
     
     Parameters:
     - user_id: User identifier
@@ -233,7 +275,7 @@ async def upload_emotions_s3_batch(batch_data: EmotionBatchUpload):
                 
                 # Upload to S3
                 s3_client.put_object(
-                    Bucket='emotion-jar-memory',
+                    Bucket='emotion-jar-memories',
                     Key=s3_key,
                     Body=json_data,
                     ContentType='application/json'
@@ -281,6 +323,13 @@ async def fetch_all_emotions(user_data: UserEmotionFetch):
     Returns data in the format expected by the frontend memory system
     """
     try:
+        # Validate user exists in users table
+        table = dynamodb.Table('users')
+        user_response = table.get_item(Key={'user_id': user_data.user_id})
+        
+        if 'Item' not in user_response:
+            raise HTTPException(status_code=401, detail="Invalid user session")
+        
         user_id = user_data.user_id
         journal_entries = {}
         
@@ -291,7 +340,7 @@ async def fetch_all_emotions(user_data: UserEmotionFetch):
                 prefix = f"{emotion}/{user_id}/"
                 
                 response = s3_client.list_objects_v2(
-                    Bucket='emotion-jar-memory',
+                    Bucket='emotion-jar-memories',
                     Prefix=prefix
                 )
                 
@@ -301,7 +350,7 @@ async def fetch_all_emotions(user_data: UserEmotionFetch):
                         try:
                             # Get the object content
                             obj_response = s3_client.get_object(
-                                Bucket='emotion-jar-memory',
+                                Bucket='emotion-jar-memories',
                                 Key=obj['Key']
                             )
                             
@@ -351,7 +400,159 @@ async def fetch_all_emotions(user_data: UserEmotionFetch):
         }
         
     except Exception as e:
+        if "Invalid user session" in str(e):
+            raise e
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch emotions from S3: {str(e)}"
         )
+
+@app.post("/register")
+async def register_user(user_data: UserRegistration):
+    """
+    Register a new user and store in DynamoDB users table
+    """
+    print(f"Received registration data: {user_data}")
+    print(f"Email: {user_data.email}, Name: {user_data.name}, Phone: {user_data.phone}")
+    
+    try:
+        # Validate required fields
+        if not user_data.email or not user_data.password or not user_data.name or not user_data.phone:
+            raise HTTPException(status_code=400, detail="Missing required fields: email, password, name, and phone are required")
+        
+        table = dynamodb.Table('users')
+        print(f"Connected to DynamoDB table: {table.table_name}")
+        
+        # Check if user already exists by scanning for email
+        print("Checking if user already exists...")
+        response = table.scan(
+            FilterExpression=Attr('email').eq(user_data.email)
+        )
+        
+        if response['Items']:
+            print(f"User with email {user_data.email} already exists")
+            raise HTTPException(status_code=400, detail="User with this email already exists")
+        
+        # Generate user ID
+        user_id = f"user_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        print(f"Generated user_id: {user_id}")
+        
+        # Hash password (basic - use bcrypt in production)
+        password_hash = hashlib.sha256(user_data.password.encode()).hexdigest()
+        
+        # Store user in DynamoDB with proper structure
+        timestamp = datetime.now().isoformat()
+        user_item = {
+            'user_id': user_id,
+            'timestamp': timestamp,  # Sort key
+            'email': user_data.email,
+            'password': password_hash,
+            'name': user_data.name,
+            'phone': user_data.phone,
+            'emergency_contact_name': user_data.emergency_contact_name,
+            'emergency_contact_phone': user_data.emergency_contact_phone,
+            'created_at': timestamp,
+            'last_login': None
+        }
+        
+        print(f"Storing user item: {user_item}")
+        table.put_item(Item=user_item)
+        print("User stored successfully in DynamoDB")
+        
+        return {
+            "success": True,
+            "message": "User registered successfully",
+            "user_id": user_id
+        }
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions (like user already exists)
+        raise
+    except Exception as e:
+        print(f"Registration error: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+
+@app.post("/login")
+async def login_user(login_data: UserLogin):
+    """
+    Authenticate user and return profile details from users table
+    """
+    try:
+        table = dynamodb.Table('users')
+        
+        # Query by email
+        response = table.scan(
+            FilterExpression=Attr('email').eq(login_data.email)
+        )
+        
+        if not response['Items']:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        user = response['Items'][0]
+        
+        # Verify password
+        password_hash = hashlib.sha256(login_data.password.encode()).hexdigest()
+        if user.get('password') != password_hash:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        # Update last login (need both user_id and timestamp for composite key)
+        table.update_item(
+            Key={'user_id': user['user_id'], 'timestamp': user['timestamp']},
+            UpdateExpression='SET last_login = :timestamp',
+            ExpressionAttributeValues={':timestamp': datetime.now().isoformat()}
+        )
+        
+        return {
+            "user_id": user['user_id'],
+            "email": user['email'],
+            "name": user['name'],
+            "phone": user['phone'],
+            "emergency_contact_name": user.get('emergency_contact_name'),
+            "emergency_contact_phone": user.get('emergency_contact_phone'),
+            "last_login": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        if "Invalid credentials" in str(e):
+            raise e
+        raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
+
+@app.get("/profile/{user_id}")
+async def get_user_profile(user_id: str):
+    """
+    Get user profile details from DynamoDB users table
+    """
+    try:
+        table = dynamodb.Table('users')
+        
+        # Query by user_id (partition key) - need to use Key instead of Attr for KeyConditionExpression
+        from boto3.dynamodb.conditions import Key
+        response = table.query(
+            KeyConditionExpression=Key('user_id').eq(user_id)
+        )
+        
+        if not response['Items']:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get the most recent user record (highest timestamp)
+        user = max(response['Items'], key=lambda x: x['timestamp'])
+        
+        return {
+            "user_id": user['user_id'],
+            "email": user['email'],
+            "name": user['name'],
+            "phone": user['phone'],
+            "emergency_contact_name": user.get('emergency_contact_name'),
+            "emergency_contact_phone": user.get('emergency_contact_phone'),
+            "created_at": user.get('created_at'),
+            "last_login": user.get('last_login')
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Profile fetch error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch profile: {str(e)}")
