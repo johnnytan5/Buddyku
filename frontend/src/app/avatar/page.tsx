@@ -6,6 +6,7 @@ import { SquarePen, Video } from "lucide-react";
 import { Send, Mic, X } from "lucide-react";
 import AzureAvatar from "@/components/avatar/AzureAvatar";
 import { useAzureAvatarEnhanced } from '@/hooks/useAzureAvatarEnhanced'
+import MoodSummaryModal from '@/components/MoodSummaryModal';
 import dynamic from 'next/dynamic';
 
 type Message = {
@@ -14,13 +15,90 @@ type Message = {
   breathingSuggestion?: boolean;
 };
 
+type Mood = "very-sad" | "sad" | "neutral" | "happy" | "very-happy";
+type Emotion = "belonging" | "calm" | "comfort" | "disappointment" | "gratitude" | "hope" | "joy" | "love" | "sadness" | "strength";
+
+interface MoodSummaryData {
+  date: string;
+  mood: Mood;
+  emotion: Emotion;
+  content: string;
+  gratitude: string[];
+  achievements: string[];
+  isFavorite: boolean;
+}
+
 const BreathingModal = dynamic(() => import('../modal1/page'), { ssr: false });
 
 export default function ChatbotPage() {
   const router = useRouter();
-  // Clear chat handler
-  const handleClearChat = () => {
-    setMessages([]);
+  
+  // Sample mood summary data (hardcoded fallback)
+  const sampleMoodData: MoodSummaryData = {
+    date: new Date().toISOString().split('T')[0],
+    mood: 'sad',
+    emotion: 'sadness',
+    content: 'Had a conversation about feeling stressed and overwhelmed. Shared concerns about daily pressures and the need for emotional support.',
+    gratitude: ['Having someone to talk to'],
+    achievements: ['Opened up about feelings'],
+    isFavorite: false
+  };
+
+  // State for mood summary data
+  const [moodSummaryData, setMoodSummaryData] = useState<MoodSummaryData>(sampleMoodData);
+
+  // Clear chat handler - now shows mood summary first
+  const handleClearChat = async () => {
+    if (messages.length > 0) {
+      try {
+        // Generate mood summary from messages using LLM
+        console.log('Generating mood summary for', messages.length, 'messages');
+        const response = await fetch('/api/generate-summary', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messages: messages.map(msg => ({
+              role: msg.role,
+              content: msg.content
+            }))
+          })
+        });
+
+        if (response.ok) {
+          const summaryData = await response.json();
+          console.log('Generated mood summary:', summaryData);
+          setMoodSummaryData(summaryData);
+        } else {
+          console.warn('Failed to generate mood summary, using fallback');
+          console.warn('Response status:', response.status);
+          // Keep using the existing sampleMoodData as fallback
+        }
+      } catch (error) {
+        console.error('Error generating mood summary:', error);
+        // Keep using the existing sampleMoodData as fallback
+      }
+      
+      // Show mood summary modal (either with generated or fallback data)
+      setShowMoodSummary(true);
+    }
+  };
+
+  // Handle mood summary close (just close modal, don't clear messages)
+  const handleMoodSummaryClose = () => {
+    setShowMoodSummary(false);
+  };
+
+  // Handle end conversation (close modal AND clear messages but keep welcome message)
+  const handleEndConversation = () => {
+    setShowMoodSummary(false);
+    setMessages([
+      {
+        role: "assistant",
+        content: "Hi! I'm Ruby, here to listen and support you. What's on your mind today?"
+      }
+    ]);
     setInputMessage("");
   };
 
@@ -30,11 +108,17 @@ export default function ChatbotPage() {
   };
   const [isAvatarSpeaking, setIsAvatarSpeaking] = useState(false);
   const [showBreathingModal, setShowBreathingModal] = useState(false);
+  const [showMoodSummary, setShowMoodSummary] = useState(false);
   const [microphonePermission, setMicrophonePermission] = useState<
     "granted" | "denied" | "pending" | "unknown"
   >("unknown");
 
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "assistant",
+      content: "Hi! I’m Ruby, here to listen and support you. What’s on your mind today?"
+    }
+  ]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -74,6 +158,36 @@ export default function ChatbotPage() {
     setIsAvatarSpeaking(isSpeaking);
   }, [isSpeaking]);
 
+  // State to track if welcome message has been spoken
+  const [welcomeSpoken, setWelcomeSpoken] = useState(false);
+
+  // Effect to speak the welcome message when avatar is ready (only once on initial load)
+  useEffect(() => {
+    if (avatarReady && messages.length === 1 && messages[0].role === "assistant" && !welcomeSpoken) {
+      // Delay to ensure avatar is fully initialized
+      setTimeout(async () => {
+        console.log("Speaking welcome message...");
+        try {
+          await speakText(messages[0].content);
+          setWelcomeSpoken(true);
+          
+          // Safety timeout to ensure UI is not stuck in speaking state
+          setTimeout(() => {
+            if (isSpeaking) {
+              console.warn("Welcome message speaking safety timeout - resetting state");
+              setIsAvatarSpeaking(false);
+            }
+          }, 10000); // 10 second safety timeout
+          
+        } catch (error) {
+          console.error("Error speaking welcome message:", error);
+          setWelcomeSpoken(true);
+          setIsAvatarSpeaking(false);
+        }
+      }, 1500);
+    }
+  }, [avatarReady, messages, speakText, welcomeSpoken, isSpeaking]);
+
   useEffect(() => {
     const initializeAudio = async () => {
       // Check if MediaDevices API is available
@@ -103,33 +217,45 @@ export default function ChatbotPage() {
 
   // Send message handler
   const handleSendMessage = async (message: string, fromSpeech = false) => {
-    if (!message.trim()) return;
+    console.log("handleSendMessage called", { 
+      message: message.substring(0, 50) + "...", 
+      fromSpeech, 
+      isLoading, 
+      isAvatarSpeaking,
+      isSpeaking 
+    });
+    
+    if (!message.trim()) {
+      console.log("No message to send");
+      return;
+    }
+    
     setIsLoading(true);
     setMessages((prev) => [...prev, { role: "user", content: message }]);
     setInputMessage("");
 
-    // Suicide risk detection
-    try {
-      const suicideRes = await fetch("/api/detect-suicide", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
-      });
-      if (suicideRes.ok) {
-        const risk = await suicideRes.json();
-        console.log("[Suicide Risk]", { message, ...risk });
-      } else {
-        const fallbackRes = await fetch("http://13.229.59.23/predict-text", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message }),
-        });
-        const fallbackRisk = await fallbackRes.json();
-        console.warn("[Suicide Risk] Detection failed, fallback result:", fallbackRisk);
-      }
-    } catch (err) {
-      console.warn("[Suicide Risk] Detection error:", err);
-    }
+    // // Suicide risk detection
+    // try {
+    //   const suicideRes = await fetch("/api/detect-suicide", {
+    //     method: "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     body: JSON.stringify({ message }),
+    //   });
+    //   if (suicideRes.ok) {
+    //     const risk = await suicideRes.json();
+    //     console.log("[Suicide Risk]", { message, ...risk });
+    //   } else {
+    //     const fallbackRes = await fetch("http://13.229.59.23/predict-text", {
+    //       method: "POST",
+    //       headers: { "Content-Type": "application/json" },
+    //       body: JSON.stringify({ message }),
+    //     });
+    //     const fallbackRisk = await fallbackRes.json();
+    //     console.warn("[Suicide Risk] Detection failed, fallback result:", fallbackRisk);
+    //   }
+    // } catch (err) {
+    //   console.warn("[Suicide Risk] Detection error:", err);
+    // }
 
     // Check for 'stress' keyword
     if (/\bstress+s*\b/i.test(message)) {
@@ -138,7 +264,7 @@ export default function ChatbotPage() {
           ...prev,
           {
             role: "assistant",
-            content: "I'm really sorry you're feeling stressed right now. That sounds tough, and it’s completely okay to feel this way sometimes. You don’t have to go through it alone—I’m here to listen if you’d like to share what’s on your mind. Would you like me to guide you through a gentle breathing exercise to help you feel a bit calmer?",
+            content: "I'm sorry you're feeling stressed—it's okay to feel this way. You're not alone, and I'm here to listen. Would you like me to guide you through a calming breathing exercise?",
             breathingSuggestion: true,
           } as any,
         ]);
@@ -148,6 +274,15 @@ export default function ChatbotPage() {
     }
 
     try {
+      // Filter out the initial assistant welcome message from history
+      // Only include messages after the first welcome message
+      const messageHistoryForAPI = messages.length > 1 
+        ? messages.slice(1).map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          }))
+        : [];
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -155,10 +290,7 @@ export default function ChatbotPage() {
         },
         body: JSON.stringify({
           message: message,
-          message_history: messages.map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-          })),
+          message_history: messageHistoryForAPI,
         }),
       });
 
@@ -487,11 +619,25 @@ export default function ChatbotPage() {
             <button
               onClick={(e) => {
                 e.preventDefault();
+                console.log("Send button clicked", { 
+                  hasMessage: !!inputMessage.trim(), 
+                  isLoading, 
+                  isAvatarSpeaking,
+                  isSpeaking 
+                });
                 handleSendMessage(inputMessage);
               }}
               disabled={!inputMessage.trim() || isLoading || isAvatarSpeaking}
               className="p-3 mb-2 gradient-primary text-black rounded-full hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
-              title="Send message"
+              title={
+                !inputMessage.trim() 
+                  ? "Enter a message" 
+                  : isLoading 
+                  ? "Loading..." 
+                  : isAvatarSpeaking 
+                  ? "Avatar is speaking..." 
+                  : "Send message"
+              }
             >
               <Send className="w-5 h-5" />
             </button>
@@ -519,6 +665,14 @@ export default function ChatbotPage() {
           </div>
         </div>
       )}
+
+      {/* Mood Summary Modal */}
+      <MoodSummaryModal 
+        isOpen={showMoodSummary}
+        onClose={handleMoodSummaryClose}
+        onEndConversation={handleEndConversation}
+        summaryData={moodSummaryData}
+      />
     </div>
   );
 }
