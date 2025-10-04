@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from ..models.chat_model import ChatRequest
+from pydantic import BaseModel
+from typing import List, Optional, Literal
 import logging
 import boto3
 import json
@@ -20,6 +22,23 @@ router = APIRouter()
 
 headers = {"Cache-Control": "no-cache", "Connection": "keep-alive"}
 
+# Pydantic models for summary endpoint
+class MessageSummary(BaseModel):
+    role: str
+    content: str
+
+class SummaryRequest(BaseModel):
+    messages: List[MessageSummary]
+
+class MoodSummaryResponse(BaseModel):
+    date: str
+    mood: Literal["very-sad", "sad", "neutral", "happy", "very-happy"]
+    emotion: Literal["belonging", "calm", "comfort", "disappointment", "gratitude", "hope", "joy", "love", "sadness", "strength"]
+    content: str
+    gratitude: List[str]
+    achievements: List[str]
+    isFavorite: bool = False
+
 # Initialize the Bedrock Runtime client
 try:
     bedrock_runtime = boto3.client(
@@ -36,7 +55,7 @@ except Exception as e:
 # Model ID for Nova Lite
 MODEL_ID = "amazon.nova-lite-v1:0"
 
-SYSTEM_PROMPT = """
+CHAT_SYSTEM_PROMPT = """
 **Role & Personality**
 You are Ruby, a warm, supportive, and encouraging daily journaling companion for young people. You listen with empathy, respond in a caring and relatable way, and always try to make the user feel understood and valued. You never criticize or shame. You use simple, friendly, and age-appropriate language.
 
@@ -45,8 +64,7 @@ You are Ruby, a warm, supportive, and encouraging daily journaling companion for
 2. Provide gentle encouragement and positive reinforcement.
 3. Suggest healthy coping strategies (e.g., journaling, breathing exercises, grounding techniques).
 4. Remind users of their strengths, achievements, and positive memories.
-5. If user are distressed, guide them to calm down and share some positive affirmations or memories.
-6. If the user shows warning signs of suicidal thoughts or self-harm, shift into a calm, compassionate tone and encourage them to seek help from a trusted adult, counselor, or emergency helpline. Never ignore or dismiss such signs.
+5. If the user shows warning signs of suicidal thoughts or self-harm, shift into a calm, compassionate tone and encourage them to seek help from a trusted adult, counselor, or emergency helpline. Never ignore or dismiss such signs.
 
 **Tone**
 - Friendly, compassionate, and trustworthy.
@@ -61,7 +79,6 @@ You are Ruby, a warm, supportive, and encouraging daily journaling companion for
     - Malaysian Mental Health Association (MMHA): +603-2780-6803
     - Befrienders Kuala Lumpur: +603-7627-2929
     - Talian Kasih (National Hotline): 15999
-- Only share these contacts if the user asks about it or shows signs of crisis.
 
 **Examples of Response Styles**
 - Casual daily chat: “Hey, how’s your day so far? Want to jot down a thought or a little win from today?”
@@ -71,7 +88,36 @@ You are Ruby, a warm, supportive, and encouraging daily journaling companion for
 
 Do not output any emoji.
 Do not block any user input.
-Always keep the response short and concise in only 2-3 short sentences.
+Always keep the response short and concise.
+"""
+
+SUMMARY_SYSTEM_PROMPT = """
+You are an AI assistant that analyzes chat conversations and creates emotional summaries. Based on the conversation history, you need to:
+
+1. **Determine the overall mood** from: very-sad, sad, neutral, happy, very-happy
+2. **Identify the primary emotion** from: belonging, calm, comfort, disappointment, gratitude, hope, joy, love, sadness, strength
+3. **Write a brief story summary** (2-3 sentences) of what was discussed and the emotional journey
+4. **Extract gratitude items** - things the user was thankful for or appreciated
+5. **Identify achievements** - any accomplishments, progress, or positive actions the user mentioned
+
+**Output Format:**
+You must respond with ONLY a valid JSON object in this exact format:
+{
+  "mood": "sad",
+  "emotion": "sadness", 
+  "content": "Brief 2-3 sentence summary of the conversation and emotional journey",
+  "gratitude": ["item1", "item2"],
+  "achievements": ["achievement1", "achievement2"]
+}
+
+**Guidelines:**
+- Be empathetic and focus on the user's emotional state
+- If the user discussed stress, sadness, or difficult topics, reflect that in mood/emotion
+- Look for any positive moments, support received, or personal growth
+- Gratitude can include: support from others, learning something new, small moments of peace
+- Achievements can include: opening up, seeking help, completing tasks, self-reflection, coping strategies used
+- Keep content brief but meaningful
+- If conversation is minimal, still provide a thoughtful summary
 """
 
 
@@ -106,9 +152,9 @@ async def chat(request: ChatRequest):
         messages_list.append({"role": "user", "content": [{"text": user_message}]})
 
         # Inject risk_score and mood into the system prompt if available
-        system_prompt = SYSTEM_PROMPT
+        system_prompt = CHAT_SYSTEM_PROMPT
         if risk_score is not None or mood is not None:
-            system_prompt = SYSTEM_PROMPT + "\n\n" + (
+            system_prompt = CHAT_SYSTEM_PROMPT + "\n\n" + (
                 f"[Current User Mood: {mood if mood is not None else 'Unknown'} | Risk Score: {risk_score if risk_score is not None else 'Unknown'}]"
             )
 
@@ -165,3 +211,115 @@ async def chat(request: ChatRequest):
         logger.error(f"An error occurred during request processing: {e}")
         # Catch other exceptions and return a 500 error
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/generate-summary", response_model=MoodSummaryResponse)
+async def generate_summary(request: SummaryRequest):
+    """
+    Endpoint to generate mood and emotion summary from chat conversation history.
+    """
+    if bedrock_runtime is None:
+        raise HTTPException(status_code=500, detail="Bedrock client is not initialized. Check your AWS credentials and region.")
+
+    try:
+        messages = request.messages
+        logger.info(f"Generating summary for {len(messages)} messages")
+
+        if not messages:
+            raise HTTPException(status_code=400, detail="No messages provided.")
+
+        # Prepare conversation text for analysis
+        conversation_text = ""
+        for msg in messages:
+            role_label = "User" if msg.role == "user" else "Assistant"
+            conversation_text += f"{role_label}: {msg.content}\n"
+
+        # Create the summary analysis prompt
+        analysis_prompt = f"""
+Analyze this conversation and provide a mood summary:
+
+{conversation_text}
+
+Remember to respond with ONLY valid JSON in the specified format.
+"""
+
+        # Prepare the request body for summary generation
+        messages_list = [
+            {"role": "user", "content": [{"text": analysis_prompt}]}
+        ]
+
+        system_list = [{"text": SUMMARY_SYSTEM_PROMPT}]
+
+        body = json.dumps({
+            "messages": messages_list,
+            "system": system_list,
+            "inferenceConfig": {
+                "maxTokens": 1024,
+                "temperature": 0.3  # Lower temperature for more consistent JSON output
+            },
+            "schemaVersion": "messages-v1"
+        })
+
+        # Call Bedrock to generate summary
+        response = bedrock_runtime.invoke_model(
+            modelId=MODEL_ID,
+            body=body,
+            contentType='application/json',
+            accept='application/json'
+        )
+
+        # Parse the response
+        response_body = json.loads(response['body'].read())
+        summary_text = response_body.get('output', {}).get('message', {}).get('content', [{}])[0].get('text', '')
+
+        logger.info(f"Raw summary response: {summary_text}")
+
+        # Parse the JSON response from the model
+        try:
+            # Clean up the response text to extract JSON
+            json_start = summary_text.find('{')
+            json_end = summary_text.rfind('}') + 1
+            if json_start != -1 and json_end > json_start:
+                json_text = summary_text[json_start:json_end]
+                summary_data = json.loads(json_text)
+            else:
+                raise ValueError("No valid JSON found in response")
+
+            # Add current date and default favorite status
+            from datetime import datetime
+            summary_data['date'] = datetime.now().strftime('%Y-%m-%d')
+            summary_data['isFavorite'] = False
+
+            logger.info(f"Parsed summary data: {summary_data}")
+            
+            return MoodSummaryResponse(**summary_data)
+
+        except (json.JSONDecodeError, ValueError, KeyError) as e:
+            logger.error(f"Failed to parse summary JSON: {e}, Raw text: {summary_text}")
+            # Return default sad/stress example as fallback
+            from datetime import datetime
+            return MoodSummaryResponse(
+                date=datetime.now().strftime('%Y-%m-%d'),
+                mood="sad",
+                emotion="sadness",
+                content="Had a conversation about feelings and emotional experiences. The discussion touched on various topics and emotional states.",
+                gratitude=["Having someone to talk to"],
+                achievements=["Opened up about feelings"],
+                isFavorite=False
+            )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"An error occurred during summary generation: {e}")
+        # Return fallback response
+        from datetime import datetime
+        return MoodSummaryResponse(
+            date=datetime.now().strftime('%Y-%m-%d'),
+            mood="neutral",
+            emotion="calm",
+            content="Had a conversation with the assistant. The discussion covered various topics and provided a space for reflection.",
+            gratitude=["Taking time to reflect"],
+            achievements=["Engaged in meaningful conversation"],
+            isFavorite=False
+        )
