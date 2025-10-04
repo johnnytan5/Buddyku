@@ -55,14 +55,25 @@ export const useAzureAvatarEnhanced = ({
         
         // Set timeout for speaking based on text length
         const speakingTimeout = setTimeout(() => {
-          setIsSpeaking(false)
           console.warn('Speaking timeout - force stopping')
+          setIsSpeaking(false)
         }, estimatedDuration + 5000) // Add 5 seconds buffer
         
-        const success = await avatarRef.current.speakText(text)
-        clearTimeout(speakingTimeout)
-
-        return success
+        try {
+          const success = await avatarRef.current.speakText(text)
+          clearTimeout(speakingTimeout)
+          
+          // Ensure speaking state is reset after successful speaking
+          setTimeout(() => {
+            setIsSpeaking(false)
+          }, 500) // Small delay to ensure UI updates
+          
+          return success
+        } catch (avatarError) {
+          clearTimeout(speakingTimeout)
+          setIsSpeaking(false)
+          throw avatarError
+        }
       } else {
         // Fallback to browser speech synthesis
         console.warn('Azure Avatar not available, using browser TTS fallback')
@@ -96,17 +107,29 @@ export const useAzureAvatarEnhanced = ({
           utterance.rate = 0.9
           utterance.pitch = 1
           
-          utterance.onend = () => {
+          // Set a safety timeout to ensure state is reset even if events don't fire
+          const safetyTimeout = setTimeout(() => {
+            console.warn('Fallback speech safety timeout triggered')
             setIsSpeaking(false)
+            resolve(true)
+          }, 15000) // 15 second max timeout
+          
+          utterance.onend = () => {
+            clearTimeout(safetyTimeout)
+            setIsSpeaking(false)
+            console.log('✅ Fallback speech completed')
             resolve(true)
           }
           
-          utterance.onerror = () => {
+          utterance.onerror = (event) => {
+            clearTimeout(safetyTimeout)
+            console.error('Fallback speech error:', event)
             setIsSpeaking(false)
             resolve(false)
           }
 
           setIsSpeaking(true)
+          console.log('🗣️ Starting fallback speech synthesis')
           speechSynthesis.speak(utterance)
         } catch (error) {
           console.error('Fallback speech synthesis error:', error)
@@ -114,6 +137,7 @@ export const useAzureAvatarEnhanced = ({
           resolve(false)
         }
       } else {
+        console.warn('Speech synthesis not available')
         resolve(false)
       }
     })

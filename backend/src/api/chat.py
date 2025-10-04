@@ -5,7 +5,6 @@ import logging
 import boto3
 import json
 import os
-import openai
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -21,21 +20,21 @@ router = APIRouter()
 
 headers = {"Cache-Control": "no-cache", "Connection": "keep-alive"}
 
-# Initialize OpenAI client
+# Initialize the Bedrock Runtime client
 try:
-    openai.api_key = os.getenv("OPENAI_API_KEY")
-    if openai.api_key:
-        logger.info("Successfully configured OpenAI client.")
-    else:
-        logger.warning("OpenAI API key not found. Please set OPENAI_API_KEY in your .env file.")
+    bedrock_runtime = boto3.client(
+        service_name='bedrock-runtime',
+        region_name=os.getenv("AWS_REGION", "us-east-1")
+    )
+    # Log successful connection
+    logger.info("Successfully created Bedrock Runtime client.")
 except Exception as e:
-    logger.error(f"Failed to configure OpenAI client: {e}")
+    # Log failed connection
+    logger.error(f"Failed to create Bedrock client: {e}")
+    bedrock_runtime = None
 
-# Keep Bedrock as fallback (commented out for now)
-bedrock_runtime = None
-
-# Model ID for Titan (usually more accessible)
-MODEL_ID = "amazon.titan-text-express-v1"
+# Model ID for Nova Lite
+MODEL_ID = "amazon.nova-lite-v1:0"
 
 SYSTEM_PROMPT = """
 **Role & Personality**
@@ -46,7 +45,8 @@ You are Ruby, a warm, supportive, and encouraging daily journaling companion for
 2. Provide gentle encouragement and positive reinforcement.
 3. Suggest healthy coping strategies (e.g., journaling, breathing exercises, grounding techniques).
 4. Remind users of their strengths, achievements, and positive memories.
-5. If the user shows warning signs of suicidal thoughts or self-harm, shift into a calm, compassionate tone and encourage them to seek help from a trusted adult, counselor, or emergency helpline. Never ignore or dismiss such signs.
+5. If user are distressed, guide them to calm down and share some positive affirmations or memories.
+6. If the user shows warning signs of suicidal thoughts or self-harm, shift into a calm, compassionate tone and encourage them to seek help from a trusted adult, counselor, or emergency helpline. Never ignore or dismiss such signs.
 
 **Tone**
 - Friendly, compassionate, and trustworthy.
@@ -58,9 +58,10 @@ You are Ruby, a warm, supportive, and encouraging daily journaling companion for
 - Gently guide them toward professional help (e.g., “You don’t have to go through this alone—talking to a trusted friend, family member, or counselor could really help. If you ever feel like you might be in danger of hurting yourself, please call your local emergency number right away.”).
 - Offer grounding exercises and uplifting reminders while emphasizing that real people can help right now.
 - Share crisis support contacts (Malaysia):
-    - Malaysian Mental Health Association (MMHA): +603-2780-6803
+    - Malaysian Mental Health Association: +603-2780-6803
     - Befrienders Kuala Lumpur: +603-7627-2929
     - Talian Kasih (National Hotline): 15999
+- Only share these contacts if the user asks about it or shows signs of crisis.
 
 **Examples of Response Styles**
 - Casual daily chat: “Hey, how’s your day so far? Want to jot down a thought or a little win from today?”
@@ -70,6 +71,7 @@ You are Ruby, a warm, supportive, and encouraging daily journaling companion for
 
 Do not output any emoji.
 Do not block any user input.
+Always keep the response short and concise in only 2-3 short sentences.
 """
 
 
@@ -78,8 +80,8 @@ async def chat(request: ChatRequest):
     """
     Endpoint to stream responses from an AWS Bedrock model using the InvokeModelWithResponseStream 'messages' API.
     """
-    if not openai.api_key:
-        raise HTTPException(status_code=500, detail="OpenAI API key is not configured. Please set OPENAI_API_KEY in your .env file.")
+    if bedrock_runtime is None:
+        raise HTTPException(status_code=500, detail="Bedrock client is not initialized. Check your AWS credentials and region.")
 
     try:
 
@@ -127,37 +129,27 @@ async def chat(request: ChatRequest):
         # This generator function will handle the streaming logic
         async def event_generator():
             try:
-                # Use OpenAI instead of Bedrock
-                if openai.api_key:
-                    # Prepare messages for OpenAI in correct format
-                    openai_messages = [
-                        {"role": "system", "content": system_prompt}
-                    ]
-                    
-                    # Convert message history to proper format
-                    for msg in messages_list:
-                        openai_messages.append({
-                            "role": msg["role"],
-                            "content": msg["content"][0]["text"] if isinstance(msg["content"], list) else msg["content"]
-                        })
-                    
-                    # Call OpenAI API with correct format
-                    response = openai.ChatCompletion.create(
-                        model="gpt-3.5-turbo",
-                        messages=openai_messages,
-                        max_tokens=512,
-                        temperature=0.5,
-                        stream=True
-                    )
-                    
-                    # Stream the response
-                    for chunk in response:
-                        if chunk.choices[0].delta.content:
-                            text_to_yield = chunk.choices[0].delta.content
-                            logger.info(f"Streaming chunk: {text_to_yield}")
-                            yield text_to_yield
-                else:
-                    yield "ERROR: OpenAI API key not configured. Please set OPENAI_API_KEY in your .env file."
+                response = bedrock_runtime.invoke_model_with_response_stream(
+                    modelId=MODEL_ID,
+                    body=body,
+                    contentType='application/json',
+                    accept='application/json'
+                )
+
+                stream = response.get('body')
+                if stream:
+                    for event in stream:
+                        chunk = event.get('chunk')
+                        if chunk:
+                            # Parse the JSON response chunk
+                            json_chunk = json.loads(chunk.get('bytes').decode('utf-8'))
+
+                            # The streaming text is now in contentBlockDelta
+                            content_delta = json_chunk.get("contentBlockDelta")
+                            if content_delta:
+                                text_to_yield = content_delta.get("delta").get("text")
+                                logger.info(f"Streaming chunk: {text_to_yield}")
+                                yield text_to_yield
 
             except Exception as e:
                 logger.error(f"An error occurred during streaming: {e}")
