@@ -257,8 +257,8 @@ export default function ChatbotPage() {
     //   console.warn("[Suicide Risk] Detection error:", err);
     // }
 
-    // Check for 'stress' keyword
-    if (/\bstress+s*\b/i.test(message)) {
+    // Check for 'stress' or 'stressed' keyword
+    if (/\bstress(ed)?\b/i.test(message)) {
       setTimeout(() => {
         setMessages((prev) => [
           ...prev,

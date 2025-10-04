@@ -56,16 +56,7 @@ export default function VideoCallPage() {
                             if (typeof data.risk_score !== 'undefined') setRiskScore(data.risk_score);
                             if (typeof data.mood !== 'undefined') {
                                 setMood(data.mood);
-                                if (['sad', 'very-sad'].includes(data.mood)) {
-                                    setIsSupportiveSpeaking(true);
-                                    speakText("I see you're feeling sad. Remember, it's okay to have tough days. Take a deep breath, and if you want, share what's on your mind. You're not alone in this.").then(() => {
-                                        setIsSupportiveSpeaking(false);
-                                        if (pendingLLMResponse) {
-                                            speakText(pendingLLMResponse);
-                                            setPendingLLMResponse(null);
-                                        }
-                                    });
-                                }
+                                handleMoodResponse(data.mood);
                             }
                             success = true;
                         }
@@ -86,16 +77,7 @@ export default function VideoCallPage() {
                                 if (typeof data2.risk_score !== 'undefined') setRiskScore(data2.risk_score);
                                 if (typeof data2.mood !== 'undefined') {
                                     setMood(data2.mood);
-                                    if (['sad', 'very-sad'].includes(data2.mood)) {
-                                        setIsSupportiveSpeaking(true);
-                                        speakText("I see you're feeling sad. Remember, it's okay to have tough days. Try to take a deep breath, and if you want, share what's on your mind. You're not alone and things can get better.").then(() => {
-                                            setIsSupportiveSpeaking(false);
-                                            if (pendingLLMResponse) {
-                                                speakText(pendingLLMResponse);
-                                                setPendingLLMResponse(null);
-                                            }
-                                        });
-                                    }
+                                    handleMoodResponse(data2.mood);
                                 }
                             }
                         } catch (err2) {
@@ -196,6 +178,30 @@ export default function VideoCallPage() {
         autoProcessSpeech: false,
         chatEndpoint: '/api/chat'
     });
+
+    // Handle mood-based supportive messages
+    const handleMoodResponse = useCallback((detectedMood: string) => {
+        if (['sad', 'very-sad'].includes(detectedMood)) {
+            setIsSupportiveSpeaking(true);
+            speakText("Hi Johnny, I see you're feeling sad. It's okay to have tough days. Want to tell me what's on your mind?").then(() => {
+                setIsSupportiveSpeaking(false);
+                if (pendingLLMResponse) {
+                    speakText(pendingLLMResponse);
+                    setPendingLLMResponse(null);
+                }
+            });
+        }
+        if (['happy', 'very-happy'].includes(detectedMood)) {
+            setIsSupportiveSpeaking(true);
+            speakText("Hi Johnny, I see you're feeling happy! Want to share what's been going well for you?").then(() => {
+                setIsSupportiveSpeaking(false);
+                if (pendingLLMResponse) {
+                    speakText(pendingLLMResponse);
+                    setPendingLLMResponse(null);
+                }
+            });
+        }
+    }, [speakText, pendingLLMResponse]);
 
     useEffect(() => {
         const getMedia = async () => {
