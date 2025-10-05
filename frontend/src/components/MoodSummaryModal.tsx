@@ -3,6 +3,31 @@
 import { useState } from "react";
 import { X, Heart, Sparkles, Calendar, BookOpen } from "lucide-react";
 
+// Add custom animation styles
+const animationStyles = `
+  @keyframes bounce-in {
+    0% {
+      transform: scale(0.3) translateY(-50px);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.05) translateY(0);
+      opacity: 0.8;
+    }
+    70% {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  .animate-bounce-in {
+    animation: bounce-in 0.6s ease-out forwards;
+  }
+`;
+
 type Mood = "very-sad" | "sad" | "neutral" | "happy" | "very-happy";
 type Emotion = "belonging" | "calm" | "comfort" | "disappointment" | "gratitude" | "hope" | "joy" | "love" | "sadness" | "strength";
 
@@ -53,7 +78,20 @@ const moodColors: Record<Mood, string> = {
 };
 
 export default function MoodSummaryModal({ isOpen, onClose, onEndConversation, summaryData }: MoodSummaryModalProps) {
+  const [showJarConfirmation, setShowJarConfirmation] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleEndConversation = () => {
+    // Show the jar confirmation popup first
+    setShowJarConfirmation(true);
+  };
+
+  const handleConfirmationClose = () => {
+    setShowJarConfirmation(false);
+    // Then call the original onEndConversation
+    onEndConversation();
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -65,9 +103,11 @@ export default function MoodSummaryModal({ isOpen, onClose, onEndConversation, s
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-white bg-opacity-50 backdrop-blur-sm p-4 pt-16">
-      {/* Background overlay */}
-      <div className="fixed inset-0" onClick={onClose} />
+    <>
+      <style dangerouslySetInnerHTML={{ __html: animationStyles }} />
+      <div className="fixed inset-0 z-50 flex items-start justify-center bg-white bg-opacity-50 backdrop-blur-sm p-4 pt-16">
+        {/* Background overlay */}
+        <div className="fixed inset-0" onClick={onClose} />
       
       {/* Modal content - Mobile optimized */}
       <div className="relative w-full max-w-sm mx-auto z-50" onClick={e => e.stopPropagation()}>
@@ -161,7 +201,7 @@ export default function MoodSummaryModal({ isOpen, onClose, onEndConversation, s
           {/* Footer - Mobile optimized */}
           <div className="text-center">
             <button
-              onClick={onEndConversation}
+              onClick={handleEndConversation}
               className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6 py-2.5 rounded-full font-semibold text-sm shadow-lg transition-all duration-200 transform hover:scale-105 w-full"
             >
               End Conversation
@@ -169,6 +209,56 @@ export default function MoodSummaryModal({ isOpen, onClose, onEndConversation, s
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Jar Confirmation Popup */}
+      {showJarConfirmation && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-xs mx-auto" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-3xl shadow-2xl border-4 border-pink-200 p-6 text-center animate-bounce-in">
+              {/* Cute Header */}
+              <div className="mb-4">
+                <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full flex items-center justify-center shadow-lg">
+                  <div className="text-3xl">{emotionEmojis[summaryData.emotion]}</div>
+                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-1">Added to Memory Jar!</h3>
+                <p className="text-xs text-gray-600">Your conversation has been saved</p>
+              </div>
+
+              {/* Emotion Jar Info */}
+              <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-4 mb-4 border-2 border-pink-100">
+                <div className="flex items-center justify-center space-x-2 mb-2">
+                  <div className="text-2xl">{emotionEmojis[summaryData.emotion]}</div>
+                  <div className="text-lg font-semibold text-gray-800 capitalize">
+                    {summaryData.emotion} Jar
+                  </div>
+                </div>
+                <p className="text-xs text-gray-600">
+                  Your {summaryData.emotion} memory has been safely stored in your personal emotion jar
+                </p>
+              </div>
+
+              {/* Cute Message */}
+              <div className="mb-4">
+                <p className="text-sm text-gray-700 mb-2">
+                  <span className="font-semibold">Ruby says:</span> "Your feelings matter! 💝"
+                </p>
+                <p className="text-xs text-gray-500">
+                  Visit your Memory section to see all your saved conversations
+                </p>
+              </div>
+
+              {/* Confirmation Button */}
+              <button
+                onClick={handleConfirmationClose}
+                className="bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 text-white px-8 py-2.5 rounded-full font-semibold text-sm shadow-lg transition-all duration-200 transform hover:scale-105 w-full"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
+    </>
   );
 }

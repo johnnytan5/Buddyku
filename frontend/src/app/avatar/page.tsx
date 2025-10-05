@@ -70,18 +70,88 @@ export default function ChatbotPage() {
           const summaryData = await response.json();
           console.log('Generated mood summary:', summaryData);
           setMoodSummaryData(summaryData);
+          
+          // Upload mood summary to S3 after generation
+          await uploadMoodSummaryToS3(summaryData);
         } else {
           console.warn('Failed to generate mood summary, using fallback');
           console.warn('Response status:', response.status);
           // Keep using the existing sampleMoodData as fallback
+          
+          // Still try to upload the fallback data
+          await uploadMoodSummaryToS3(sampleMoodData);
         }
       } catch (error) {
         console.error('Error generating mood summary:', error);
         // Keep using the existing sampleMoodData as fallback
+        
+        // Still try to upload the fallback data
+        await uploadMoodSummaryToS3(sampleMoodData);
       }
       
       // Show mood summary modal (either with generated or fallback data)
       setShowMoodSummary(true);
+    }
+  };
+
+  // Upload mood summary to S3
+  const uploadMoodSummaryToS3 = async (summaryData: MoodSummaryData) => {
+    setIsUploadingToS3(true);
+    setUploadSuccess(null);
+    
+    try {
+      const user_id = "test_user_123";
+      
+      const uploadData = {
+        user_id: user_id,
+        date: summaryData.date,
+        mood: summaryData.mood,
+        emotion: summaryData.emotion,
+        title: "Chat Session Summary",
+        content: summaryData.content,
+        description: "Generated from chat conversation with Ruby",
+        location: "",
+        people: [],
+        tags: [],
+        gratitude: summaryData.gratitude,
+        achievements: summaryData.achievements,
+        mediaAttachments: [],
+        isFavorite: summaryData.isFavorite
+      };
+
+      console.log('Uploading mood summary to S3:', uploadData);
+      
+      const response = await fetch('/api/upload-emotion', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(uploadData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Successfully uploaded mood summary to S3:', result);
+        setUploadSuccess(true);
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => setUploadSuccess(null), 3000);
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to upload mood summary:', errorData);
+        setUploadSuccess(false);
+        
+        // Clear error message after 5 seconds
+        setTimeout(() => setUploadSuccess(null), 5000);
+      }
+    } catch (error) {
+      console.error('Error uploading mood summary to S3:', error);
+      setUploadSuccess(false);
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setUploadSuccess(null), 5000);
+    } finally {
+      setIsUploadingToS3(false);
     }
   };
 
@@ -109,6 +179,8 @@ export default function ChatbotPage() {
   const [isAvatarSpeaking, setIsAvatarSpeaking] = useState(false);
   const [showBreathingModal, setShowBreathingModal] = useState(false);
   const [showMoodSummary, setShowMoodSummary] = useState(false);
+  const [isUploadingToS3, setIsUploadingToS3] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState<boolean | null>(null);
   const [microphonePermission, setMicrophonePermission] = useState<
     "granted" | "denied" | "pending" | "unknown"
   >("unknown");
@@ -234,28 +306,28 @@ export default function ChatbotPage() {
     setMessages((prev) => [...prev, { role: "user", content: message }]);
     setInputMessage("");
 
-    // // Suicide risk detection
-    // try {
-    //   const suicideRes = await fetch("/api/detect-suicide", {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify({ message }),
-    //   });
-    //   if (suicideRes.ok) {
-    //     const risk = await suicideRes.json();
-    //     console.log("[Suicide Risk]", { message, ...risk });
-    //   } else {
-    //     const fallbackRes = await fetch("http://13.229.59.23/predict-text", {
-    //       method: "POST",
-    //       headers: { "Content-Type": "application/json" },
-    //       body: JSON.stringify({ message }),
-    //     });
-    //     const fallbackRisk = await fallbackRes.json();
-    //     console.warn("[Suicide Risk] Detection failed, fallback result:", fallbackRisk);
-    //   }
-    // } catch (err) {
-    //   console.warn("[Suicide Risk] Detection error:", err);
-    // }
+    // Suicide risk detection
+    try {
+      const suicideRes = await fetch("/api/detect-suicide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      if (suicideRes.ok) {
+        const risk = await suicideRes.json();
+        console.log("[Suicide Risk]", { message, ...risk });
+      } else {
+        const fallbackRes = await fetch("http://13.229.59.23/predict-text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        });
+        const fallbackRisk = await fallbackRes.json();
+        console.warn("[Suicide Risk] Detection failed, fallback result:", fallbackRisk);
+      }
+    } catch (err) {
+      console.warn("[Suicide Risk] Detection error:", err);
+    }
 
     // Check for 'stress' or 'stressed' keyword
     if (/\bstress(ed)?\b/i.test(message)) {
@@ -429,6 +501,25 @@ export default function ChatbotPage() {
             >
               Dismiss
             </button>
+          </div>
+        )}
+        {/* Upload Status Indicator */}
+        {isUploadingToS3 && (
+          <div className="mt-2 bg-blue-100 border border-blue-300 rounded-lg px-3 py-2 text-xs flex items-center space-x-2 max-w-sm mx-auto">
+            <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-blue-700">Saving conversation summary...</span>
+          </div>
+        )}
+        {uploadSuccess === true && (
+          <div className="mt-2 bg-green-100 border border-green-300 rounded-lg px-3 py-2 text-xs flex items-center space-x-2 max-w-sm mx-auto">
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <span className="text-green-700">Conversation saved successfully!</span>
+          </div>
+        )}
+        {uploadSuccess === false && (
+          <div className="mt-2 bg-red-100 border border-red-300 rounded-lg px-3 py-2 text-xs flex items-center space-x-2 max-w-sm mx-auto">
+            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+            <span className="text-red-700">Failed to save conversation. Please try again.</span>
           </div>
         )}
       </div>
