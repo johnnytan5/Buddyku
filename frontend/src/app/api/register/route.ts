@@ -1,41 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-interface ProfileRequest {
-  user_id: string
-}
-
-interface ProfileResponse {
-  user_id: string
+interface RegisterRequest {
   email: string
+  password: string
   name: string
   phone: string
   emergency_contact_name?: string
   emergency_contact_phone?: string
-  created_at?: string
-  last_login?: string
+}
+
+interface RegisterResponse {
+  success: boolean
+  message: string
+  user_id?: string
 }
 
 export const runtime = 'edge'
 
 export async function POST(request: NextRequest) {
   try {
-    const body: ProfileRequest = await request.json()
+    const body: RegisterRequest = await request.json()
     
-    if (!body.user_id?.trim()) {
+    // Validate required fields
+    if (!body.email || !body.password || !body.name || !body.phone) {
       return NextResponse.json(
-        { error: 'User ID is required' },
+        { error: 'Missing required fields: email, password, name, and phone are required' },
         { status: 400 }
       )
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
-    const backendUrl = `${baseUrl}/api/profile/${body.user_id}`
+    const backendUrl = `${baseUrl}/api/register`
 
     const response = await fetch(backendUrl, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify(body),
     })
 
     if (!response.ok) {
@@ -47,11 +49,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const data: ProfileResponse = await response.json()
+    const data: RegisterResponse = await response.json()
     return NextResponse.json(data, { status: 200 })
     
   } catch (error) {
-    console.error('Error in profile API route:', error)
+    console.error('Error in register API route:', error)
     
     return NextResponse.json(
       { 
@@ -65,7 +67,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   return NextResponse.json({
-    message: 'Profile API is running',
+    message: 'Register API is running',
     timestamp: new Date().toISOString()
   })
 }
