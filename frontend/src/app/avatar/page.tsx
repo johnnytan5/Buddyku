@@ -316,6 +316,44 @@ export default function ChatbotPage() {
       if (suicideRes.ok) {
         const risk = await suicideRes.json();
         console.log("[Suicide Risk]", { message, ...risk });
+        
+        // Check for very high risk and trigger AI call
+        if (risk.risk_level === "very-high" || risk.risk_score >= 0.9) {
+          console.log("VERY HIGH SUICIDE RISK DETECTED - Initiating emergency AI call");
+          
+          // Trigger AI calling endpoint
+          try {
+            const callResponse = await fetch("/api/initiate-call", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                to_number: "+60164028306", // Replace with user's actual phone number
+                user_id: "test_user_123", // Replace with actual user ID
+                initial_mood: "crisis",
+                custom_prompt: "This is an emergency call. The user has expressed suicidal thoughts and needs immediate support and crisis intervention."
+              }),
+            });
+            
+            if (callResponse.ok) {
+              const callResult = await callResponse.json();
+              console.log("Emergency AI call initiated successfully:", callResult);
+              
+              // Show emergency message to user
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: "assistant",
+                  content: "I'm very concerned about what you've shared. I'm here for you right now, and I've also initiated a call from our crisis support team who will reach out to you shortly. You are not alone, and there are people who want to help you through this difficult time. Please stay safe.",
+                } as any,
+              ]);
+            } else {
+              const errorData = await callResponse.json();
+              console.error("Failed to initiate emergency AI call:", errorData);
+            }
+          } catch (callError) {
+            console.error("Error initiating emergency AI call:", callError);
+          }
+        }
       } else {
         const fallbackRes = await fetch("http://13.229.59.23/predict-text", {
           method: "POST",
