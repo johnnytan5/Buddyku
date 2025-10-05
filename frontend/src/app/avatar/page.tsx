@@ -327,7 +327,7 @@ export default function ChatbotPage() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                to_number: "+60164028306", // Replace with user's actual phone number
+                to_number: "+1234567890", // Replace with user's actual phone number
                 user_id: "test_user_123", // Replace with actual user ID
                 initial_mood: "crisis",
                 custom_prompt: "This is an emergency call. The user has expressed suicidal thoughts and needs immediate support and crisis intervention."
