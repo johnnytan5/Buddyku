@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from ..models.chat_model import ChatRequest
+from models.chat_model import ChatRequest
 from pydantic import BaseModel
 from typing import List, Optional, Literal
 import logging

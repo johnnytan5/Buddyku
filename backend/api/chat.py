@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from ..models.chat_model import ChatRequest
+from models.chat_model import ChatRequest
 import logging
 import boto3
 import json

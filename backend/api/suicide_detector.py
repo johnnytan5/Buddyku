@@ -1,6 +1,6 @@
 
 from fastapi import APIRouter, HTTPException
-from ..models.suicide_model import SuicideDetectionRequest, SuicideDetectionResponse
+from models.suicide_model import SuicideDetectionRequest, SuicideDetectionResponse
 import logging
 import boto3
 import json
