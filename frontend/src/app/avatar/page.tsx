@@ -6,6 +6,7 @@ import { SquarePen, Video } from "lucide-react";
 import { Send, Mic, X } from "lucide-react";
 import AzureAvatar from "@/components/avatar/AzureAvatar";
 import { useAzureAvatarEnhanced } from '@/hooks/useAzureAvatarEnhanced'
+import MoodSummaryModal from '@/components/MoodSummaryModal';
 import dynamic from 'next/dynamic';
 
 type Message = {
@@ -14,13 +15,160 @@ type Message = {
   breathingSuggestion?: boolean;
 };
 
+type Mood = "very-sad" | "sad" | "neutral" | "happy" | "very-happy";
+type Emotion = "belonging" | "calm" | "comfort" | "disappointment" | "gratitude" | "hope" | "joy" | "love" | "sadness" | "strength";
+
+interface MoodSummaryData {
+  date: string;
+  mood: Mood;
+  emotion: Emotion;
+  content: string;
+  gratitude: string[];
+  achievements: string[];
+  isFavorite: boolean;
+}
+
 const BreathingModal = dynamic(() => import('../modal1/page'), { ssr: false });
 
 export default function ChatbotPage() {
   const router = useRouter();
-  // Clear chat handler
-  const handleClearChat = () => {
-    setMessages([]);
+  
+  // Sample mood summary data (hardcoded fallback)
+  const sampleMoodData: MoodSummaryData = {
+    date: new Date().toISOString().split('T')[0],
+    mood: 'sad',
+    emotion: 'sadness',
+    content: 'Had a conversation about feeling stressed and overwhelmed. Shared concerns about daily pressures and the need for emotional support.',
+    gratitude: ['Having someone to talk to'],
+    achievements: ['Opened up about feelings'],
+    isFavorite: false
+  };
+
+  // State for mood summary data
+  const [moodSummaryData, setMoodSummaryData] = useState<MoodSummaryData>(sampleMoodData);
+
+  // Clear chat handler - now shows mood summary first
+  const handleClearChat = async () => {
+    if (messages.length > 0) {
+      try {
+        // Generate mood summary from messages using LLM
+        console.log('Generating mood summary for', messages.length, 'messages');
+        const response = await fetch('/api/generate-summary', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messages: messages.map(msg => ({
+              role: msg.role,
+              content: msg.content
+            }))
+          })
+        });
+
+        if (response.ok) {
+          const summaryData = await response.json();
+          console.log('Generated mood summary:', summaryData);
+          setMoodSummaryData(summaryData);
+          
+          // Upload mood summary to S3 after generation
+          await uploadMoodSummaryToS3(summaryData);
+        } else {
+          console.warn('Failed to generate mood summary, using fallback');
+          console.warn('Response status:', response.status);
+          // Keep using the existing sampleMoodData as fallback
+          
+          // Still try to upload the fallback data
+          await uploadMoodSummaryToS3(sampleMoodData);
+        }
+      } catch (error) {
+        console.error('Error generating mood summary:', error);
+        // Keep using the existing sampleMoodData as fallback
+        
+        // Still try to upload the fallback data
+        await uploadMoodSummaryToS3(sampleMoodData);
+      }
+      
+      // Show mood summary modal (either with generated or fallback data)
+      setShowMoodSummary(true);
+    }
+  };
+
+  // Upload mood summary to S3
+  const uploadMoodSummaryToS3 = async (summaryData: MoodSummaryData) => {
+    setIsUploadingToS3(true);
+    setUploadSuccess(null);
+    
+    try {
+      const user_id = "test_user_123";
+      
+      const uploadData = {
+        user_id: user_id,
+        date: summaryData.date,
+        mood: summaryData.mood,
+        emotion: summaryData.emotion,
+        title: "Chat Session Summary",
+        content: summaryData.content,
+        description: "Generated from chat conversation with Ruby",
+        location: "",
+        people: [],
+        tags: [],
+        gratitude: summaryData.gratitude,
+        achievements: summaryData.achievements,
+        mediaAttachments: [],
+        isFavorite: summaryData.isFavorite
+      };
+
+      console.log('Uploading mood summary to S3:', uploadData);
+      
+      const response = await fetch('/api/upload-emotion', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(uploadData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Successfully uploaded mood summary to S3:', result);
+        setUploadSuccess(true);
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => setUploadSuccess(null), 3000);
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to upload mood summary:', errorData);
+        setUploadSuccess(false);
+        
+        // Clear error message after 5 seconds
+        setTimeout(() => setUploadSuccess(null), 5000);
+      }
+    } catch (error) {
+      console.error('Error uploading mood summary to S3:', error);
+      setUploadSuccess(false);
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setUploadSuccess(null), 5000);
+    } finally {
+      setIsUploadingToS3(false);
+    }
+  };
+
+  // Handle mood summary close (just close modal, don't clear messages)
+  const handleMoodSummaryClose = () => {
+    setShowMoodSummary(false);
+  };
+
+  // Handle end conversation (close modal AND clear messages but keep welcome message)
+  const handleEndConversation = () => {
+    setShowMoodSummary(false);
+    setMessages([
+      {
+        role: "assistant",
+        content: "Hi! I'm Ruby, here to listen and support you. What's on your mind today?"
+      }
+    ]);
     setInputMessage("");
   };
 
@@ -30,11 +178,19 @@ export default function ChatbotPage() {
   };
   const [isAvatarSpeaking, setIsAvatarSpeaking] = useState(false);
   const [showBreathingModal, setShowBreathingModal] = useState(false);
+  const [showMoodSummary, setShowMoodSummary] = useState(false);
+  const [isUploadingToS3, setIsUploadingToS3] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState<boolean | null>(null);
   const [microphonePermission, setMicrophonePermission] = useState<
     "granted" | "denied" | "pending" | "unknown"
   >("unknown");
 
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "assistant",
+      content: "Hi! I’m Ruby, here to listen and support you. What’s on your mind today?"
+    }
+  ]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -74,6 +230,36 @@ export default function ChatbotPage() {
     setIsAvatarSpeaking(isSpeaking);
   }, [isSpeaking]);
 
+  // State to track if welcome message has been spoken
+  const [welcomeSpoken, setWelcomeSpoken] = useState(false);
+
+  // Effect to speak the welcome message when avatar is ready (only once on initial load)
+  useEffect(() => {
+    if (avatarReady && messages.length === 1 && messages[0].role === "assistant" && !welcomeSpoken) {
+      // Delay to ensure avatar is fully initialized
+      setTimeout(async () => {
+        console.log("Speaking welcome message...");
+        try {
+          await speakText(messages[0].content);
+          setWelcomeSpoken(true);
+          
+          // Safety timeout to ensure UI is not stuck in speaking state
+          setTimeout(() => {
+            if (isSpeaking) {
+              console.warn("Welcome message speaking safety timeout - resetting state");
+              setIsAvatarSpeaking(false);
+            }
+          }, 10000); // 10 second safety timeout
+          
+        } catch (error) {
+          console.error("Error speaking welcome message:", error);
+          setWelcomeSpoken(true);
+          setIsAvatarSpeaking(false);
+        }
+      }, 1500);
+    }
+  }, [avatarReady, messages, speakText, welcomeSpoken, isSpeaking]);
+
   useEffect(() => {
     const initializeAudio = async () => {
       // Check if MediaDevices API is available
@@ -103,7 +289,19 @@ export default function ChatbotPage() {
 
   // Send message handler
   const handleSendMessage = async (message: string, fromSpeech = false) => {
-    if (!message.trim()) return;
+    console.log("handleSendMessage called", { 
+      message: message.substring(0, 50) + "...", 
+      fromSpeech, 
+      isLoading, 
+      isAvatarSpeaking,
+      isSpeaking 
+    });
+    
+    if (!message.trim()) {
+      console.log("No message to send");
+      return;
+    }
+    
     setIsLoading(true);
     setMessages((prev) => [...prev, { role: "user", content: message }]);
     setInputMessage("");
@@ -118,6 +316,44 @@ export default function ChatbotPage() {
       if (suicideRes.ok) {
         const risk = await suicideRes.json();
         console.log("[Suicide Risk]", { message, ...risk });
+        
+        // Check for very high risk and trigger AI call
+        if (risk.risk_level === "very-high" || risk.risk_score >= 0.9) {
+          console.log("VERY HIGH SUICIDE RISK DETECTED - Initiating emergency AI call");
+          
+          // Trigger AI calling endpoint
+          try {
+            const callResponse = await fetch("/api/initiate-call", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                to_number: "+1234567890", // Replace with user's actual phone number
+                user_id: "test_user_123", // Replace with actual user ID
+                initial_mood: "crisis",
+                custom_prompt: "This is an emergency call. The user has expressed suicidal thoughts and needs immediate support and crisis intervention."
+              }),
+            });
+            
+            if (callResponse.ok) {
+              const callResult = await callResponse.json();
+              console.log("Emergency AI call initiated successfully:", callResult);
+              
+              // Show emergency message to user
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: "assistant",
+                  content: "I'm very concerned about what you've shared. I'm here for you right now, and I've also initiated a call from our crisis support team who will reach out to you shortly. You are not alone, and there are people who want to help you through this difficult time. Please stay safe.",
+                } as any,
+              ]);
+            } else {
+              const errorData = await callResponse.json();
+              console.error("Failed to initiate emergency AI call:", errorData);
+            }
+          } catch (callError) {
+            console.error("Error initiating emergency AI call:", callError);
+          }
+        }
       } else {
         const fallbackRes = await fetch("http://13.229.59.23/predict-text", {
           method: "POST",
@@ -131,14 +367,14 @@ export default function ChatbotPage() {
       console.warn("[Suicide Risk] Detection error:", err);
     }
 
-    // Check for 'stress' keyword
-    if (/\bstress+s*\b/i.test(message)) {
+    // Check for 'stress' or 'stressed' keyword
+    if (/\bstress(ed)?\b/i.test(message)) {
       setTimeout(() => {
         setMessages((prev) => [
           ...prev,
           {
             role: "assistant",
-            content: "I'm really sorry you're feeling stressed right now. That sounds tough, and it’s completely okay to feel this way sometimes. You don’t have to go through it alone—I’m here to listen if you’d like to share what’s on your mind. Would you like me to guide you through a gentle breathing exercise to help you feel a bit calmer?",
+            content: "I'm sorry you're feeling stressed—it's okay to feel this way. You're not alone, and I'm here to listen. Would you like me to guide you through a calming breathing exercise?",
             breathingSuggestion: true,
           } as any,
         ]);
@@ -148,6 +384,15 @@ export default function ChatbotPage() {
     }
 
     try {
+      // Filter out the initial assistant welcome message from history
+      // Only include messages after the first welcome message
+      const messageHistoryForAPI = messages.length > 1 
+        ? messages.slice(1).map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          }))
+        : [];
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -155,10 +400,7 @@ export default function ChatbotPage() {
         },
         body: JSON.stringify({
           message: message,
-          message_history: messages.map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-          })),
+          message_history: messageHistoryForAPI,
         }),
       });
 
@@ -297,6 +539,25 @@ export default function ChatbotPage() {
             >
               Dismiss
             </button>
+          </div>
+        )}
+        {/* Upload Status Indicator */}
+        {isUploadingToS3 && (
+          <div className="mt-2 bg-blue-100 border border-blue-300 rounded-lg px-3 py-2 text-xs flex items-center space-x-2 max-w-sm mx-auto">
+            <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-blue-700">Saving conversation summary...</span>
+          </div>
+        )}
+        {uploadSuccess === true && (
+          <div className="mt-2 bg-green-100 border border-green-300 rounded-lg px-3 py-2 text-xs flex items-center space-x-2 max-w-sm mx-auto">
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <span className="text-green-700">Conversation saved successfully!</span>
+          </div>
+        )}
+        {uploadSuccess === false && (
+          <div className="mt-2 bg-red-100 border border-red-300 rounded-lg px-3 py-2 text-xs flex items-center space-x-2 max-w-sm mx-auto">
+            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+            <span className="text-red-700">Failed to save conversation. Please try again.</span>
           </div>
         )}
       </div>
@@ -487,11 +748,25 @@ export default function ChatbotPage() {
             <button
               onClick={(e) => {
                 e.preventDefault();
+                console.log("Send button clicked", { 
+                  hasMessage: !!inputMessage.trim(), 
+                  isLoading, 
+                  isAvatarSpeaking,
+                  isSpeaking 
+                });
                 handleSendMessage(inputMessage);
               }}
               disabled={!inputMessage.trim() || isLoading || isAvatarSpeaking}
               className="p-3 mb-2 gradient-primary text-black rounded-full hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
-              title="Send message"
+              title={
+                !inputMessage.trim() 
+                  ? "Enter a message" 
+                  : isLoading 
+                  ? "Loading..." 
+                  : isAvatarSpeaking 
+                  ? "Avatar is speaking..." 
+                  : "Send message"
+              }
             >
               <Send className="w-5 h-5" />
             </button>
@@ -519,6 +794,14 @@ export default function ChatbotPage() {
           </div>
         </div>
       )}
+
+      {/* Mood Summary Modal */}
+      <MoodSummaryModal 
+        isOpen={showMoodSummary}
+        onClose={handleMoodSummaryClose}
+        onEndConversation={handleEndConversation}
+        summaryData={moodSummaryData}
+      />
     </div>
   );
 }

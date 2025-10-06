@@ -45,7 +45,7 @@ async def detect_suicide(request: SuicideDetectionRequest):
     if not request.message:
         raise HTTPException(status_code=400, detail="No message provided.")
 
-    system_list = [{"text": "You are a suicide risk detection assistant. Given a user's message, classify the suicide risk as one of: none, low, moderate, or high. Also, output a risk score between 0 and 1 (float, where 0 is no risk and 1 is highest risk). Only output a JSON object with keys 'risk_level' and 'risk_score'."}]
+    system_list = [{"text": "You are a suicide risk detection assistant. Given a user's message, classify the suicide risk as one of: none, low, moderate, high, very-high. Also, output a risk score between 0 and 1 (float, where 0 is no risk and 1 is highest risk). \n\nIMPORTANT: Messages containing explicit suicidal intent like 'I want to commit suicide', 'I want to end my life', 'I want to kill myself', or similar direct statements MUST be classified as 'very-high' with risk_score of 1.0. \n\nOnly output a JSON object with keys 'risk_level' and 'risk_score'."}]
     messages_list = [{"role": "user", "content": [{"text": request.message}]}]
 
     body = json.dumps({
