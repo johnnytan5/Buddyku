@@ -29,6 +29,8 @@ export default function RootLayout({
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isVideoCall = pathname === "/video-call";
+  const isLogin = pathname === "/login";
+  const isRegister = pathname === "/register";
 
   return (
     <html lang="en">
@@ -38,8 +40,8 @@ export default function RootLayout({
       >
 
         <main className={pathname === "/profile" ? "w-full" : "max-w-md mx-auto"}>{children}</main>
-        {/* Mobile Tab Bar - hidden on home page and video call page */}
-        {!isHome && !isVideoCall && (
+        {/* Mobile Tab Bar - hidden on home page, video call page, login and register pages */}
+        {!isHome && !isVideoCall && !isLogin && !isRegister && (
           <nav
             className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md flex justify-between items-center bg-gray-100 border-t border-gray-300 h-16 px-4 z-50 shadow"
             style={{

@@ -56,7 +56,7 @@ export default function LoginPage() {
       localStorage.setItem('user_id', userData.user_id);
       
       // Redirect to main app
-      router.push('/');
+      router.push('/avatar');
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
