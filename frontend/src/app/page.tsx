@@ -26,7 +26,7 @@ export default function Home() {
       <button
         className="bg-white text-blue-600 font-semibold rounded-full px-8 py-3 shadow-lg hover:bg-blue-50 transition"
         onClick={() => {
-          window.location.href = '/avatar';
+          window.location.href = '/login';
         }}
       >
         Welcome Back

@@ -26,29 +26,41 @@ export default function MemoryPage() {
       setIsLoading(true);
       setHasError(false);
       
-      const response = await fetch('/api/fetch-all-emotions', {
-        method: 'POST',
+      // Get user_id from localStorage (set during login)
+      const user_id = localStorage.getItem('user_id');
+      
+      if (!user_id) {
+        throw new Error('No user session found');
+      }
+      
+      console.log('Fetching journal entries for user:', user_id);
+      
+      const response = await fetch(`/api/emotions?user_id=${user_id}`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          user_id: 'test_user_123'
-        })
       });
 
+      console.log('Fetch response status:', response.status);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Fetch error:', errorText);
         throw new Error('Failed to fetch journal entries');
       }
 
       const data = await response.json();
+      console.log('Fetched data:', data);
       
       // Transform the API response to the format expected by the UI
       const journalEntries: Record<string, JournalEntry> = {};
       
-      Object.entries(data.journal_entries).forEach(([key, entry]: [string, any]) => {
+      Object.entries(data.journal_entries || {}).forEach(([key, entry]: [string, any]) => {
         journalEntries[key] = entry as JournalEntry;
       });
       
+      console.log('Transformed journal entries:', journalEntries);
       setJournalEntries(journalEntries);
       
     } catch (error) {
@@ -334,7 +346,7 @@ export default function MemoryPage() {
 
               return (
                 <button
-                  key={day}
+                  key={`${currentMonth.getFullYear()}-${currentMonth.getMonth()}-${day}`}
                   onClick={() => handleDateClick(day)}
                   className={`
                     p-1 sm:p-3 text-xs sm:text-sm rounded-lg border-2 transition-all hover:scale-105 cursor-pointer min-h-[2.5rem] sm:min-h-[3rem]
@@ -461,13 +473,62 @@ export default function MemoryPage() {
                   <p className="text-gray-600 bg-gray-50 p-3 rounded-lg leading-relaxed">{currentEntry.content}</p>
                 </div>
 
+                {/* Emotion Display */}
+                {currentEntry.emotion && (
+                  <div>
+                    <h4 className="font-medium text-gray-700 mb-2">Emotion:</h4>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${
+                        currentEntry.emotion === 'joy' ? 'from-yellow-400 to-orange-400' :
+                        currentEntry.emotion === 'love' ? 'from-red-400 to-pink-400' :
+                        currentEntry.emotion === 'gratitude' ? 'from-green-400 to-emerald-400' :
+                        currentEntry.emotion === 'hope' ? 'from-blue-400 to-cyan-400' :
+                        currentEntry.emotion === 'calm' ? 'from-indigo-400 to-blue-400' :
+                        currentEntry.emotion === 'comfort' ? 'from-purple-400 to-violet-400' :
+                        currentEntry.emotion === 'strength' ? 'from-orange-400 to-red-400' :
+                        currentEntry.emotion === 'belonging' ? 'from-pink-400 to-rose-400' :
+                        currentEntry.emotion === 'sadness' ? 'from-gray-400 to-slate-400' :
+                        'from-red-500 to-pink-500'
+                      } flex items-center justify-center`}>
+                        <span className="text-white text-lg">
+                          {currentEntry.emotion === 'joy' ? '😄' :
+                           currentEntry.emotion === 'love' ? '❤️' :
+                           currentEntry.emotion === 'gratitude' ? '🙏' :
+                           currentEntry.emotion === 'hope' ? '🌟' :
+                           currentEntry.emotion === 'calm' ? '🧘' :
+                           currentEntry.emotion === 'comfort' ? '☁️' :
+                           currentEntry.emotion === 'strength' ? '💪' :
+                           currentEntry.emotion === 'belonging' ? '👥' :
+                           currentEntry.emotion === 'sadness' ? '😢' :
+                           '😞'}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-800 capitalize">{currentEntry.emotion}</div>
+                        <div className="text-sm text-gray-500">
+                          {currentEntry.emotion === 'joy' ? 'Pure celebration & happiness' :
+                           currentEntry.emotion === 'love' ? 'Deep connection & belonging' :
+                           currentEntry.emotion === 'gratitude' ? 'Thankfulness & appreciation' :
+                           currentEntry.emotion === 'hope' ? 'Optimism & dreams' :
+                           currentEntry.emotion === 'calm' ? 'Peace & tranquility' :
+                           currentEntry.emotion === 'comfort' ? 'Warmth & security' :
+                           currentEntry.emotion === 'strength' ? 'Resilience & courage' :
+                           currentEntry.emotion === 'belonging' ? 'Acceptance & community' :
+                           currentEntry.emotion === 'sadness' ? 'Gentle sadness that needs care' :
+                           'Learning from setbacks'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Gratitude */}
                 {currentEntry.gratitude.length > 0 && (
                   <div>
                     <h4 className="font-medium text-gray-700 mb-2">Grateful for:</h4>
                     <div className="flex flex-wrap gap-2">
                       {currentEntry.gratitude.map((item, index) => (
-                        <span key={index} className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
+                        <span key={`gratitude-${index}-${item}`} className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
                           💚 {item}
                         </span>
                       ))}
@@ -481,7 +542,7 @@ export default function MemoryPage() {
                     <h4 className="font-medium text-gray-700 mb-2">Achievements:</h4>
                     <div className="flex flex-wrap gap-2">
                       {currentEntry.achievements.map((item, index) => (
-                        <span key={index} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
+                        <span key={`achievement-${index}-${item}`} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
                           🎉 {item}
                         </span>
                       ))}
@@ -562,6 +623,7 @@ export default function MemoryPage() {
               [entry.date]: entry
             }));
           }}
+          onRefresh={fetchJournalEntries}
         />
       )}
     </div>
@@ -707,12 +769,61 @@ const EmergencyMemoryKit = ({
                       </p>
                     </div>
                     
+                    {/* Emotion Display for Emergency Kit */}
+                    {currentMemory.emotion && (
+                      <div>
+                        <h4 className="font-medium text-gray-700 mb-2">Emotion:</h4>
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${
+                            currentMemory.emotion === 'joy' ? 'from-yellow-400 to-orange-400' :
+                            currentMemory.emotion === 'love' ? 'from-red-400 to-pink-400' :
+                            currentMemory.emotion === 'gratitude' ? 'from-green-400 to-emerald-400' :
+                            currentMemory.emotion === 'hope' ? 'from-blue-400 to-cyan-400' :
+                            currentMemory.emotion === 'calm' ? 'from-indigo-400 to-blue-400' :
+                            currentMemory.emotion === 'comfort' ? 'from-purple-400 to-violet-400' :
+                            currentMemory.emotion === 'strength' ? 'from-orange-400 to-red-400' :
+                            currentMemory.emotion === 'belonging' ? 'from-pink-400 to-rose-400' :
+                            currentMemory.emotion === 'sadness' ? 'from-gray-400 to-slate-400' :
+                            'from-red-500 to-pink-500'
+                          } flex items-center justify-center`}>
+                            <span className="text-white text-sm">
+                              {currentMemory.emotion === 'joy' ? '😄' :
+                               currentMemory.emotion === 'love' ? '❤️' :
+                               currentMemory.emotion === 'gratitude' ? '🙏' :
+                               currentMemory.emotion === 'hope' ? '🌟' :
+                               currentMemory.emotion === 'calm' ? '🧘' :
+                               currentMemory.emotion === 'comfort' ? '☁️' :
+                               currentMemory.emotion === 'strength' ? '💪' :
+                               currentMemory.emotion === 'belonging' ? '👥' :
+                               currentMemory.emotion === 'sadness' ? '😢' :
+                               '😞'}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-800 capitalize text-sm">{currentMemory.emotion}</div>
+                            <div className="text-xs text-gray-500">
+                              {currentMemory.emotion === 'joy' ? 'Pure celebration & happiness' :
+                               currentMemory.emotion === 'love' ? 'Deep connection & belonging' :
+                               currentMemory.emotion === 'gratitude' ? 'Thankfulness & appreciation' :
+                               currentMemory.emotion === 'hope' ? 'Optimism & dreams' :
+                               currentMemory.emotion === 'calm' ? 'Peace & tranquility' :
+                               currentMemory.emotion === 'comfort' ? 'Warmth & security' :
+                               currentMemory.emotion === 'strength' ? 'Resilience & courage' :
+                               currentMemory.emotion === 'belonging' ? 'Acceptance & community' :
+                               currentMemory.emotion === 'sadness' ? 'Gentle sadness that needs care' :
+                               'Learning from setbacks'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     {currentMemory.gratitude.length > 0 && (
                       <div>
                         <h4 className="font-medium text-gray-700 mb-2">You were grateful for:</h4>
                         <div className="flex flex-wrap gap-2">
                           {currentMemory.gratitude.map((item, index) => (
-                            <span key={index} className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
+                            <span key={`emergency-gratitude-${index}-${item}`} className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
                               💚 {item}
                             </span>
                           ))}
@@ -725,7 +836,7 @@ const EmergencyMemoryKit = ({
                         <h4 className="font-medium text-gray-700 mb-2">Your achievements:</h4>
                         <div className="flex flex-wrap gap-2">
                           {currentMemory.achievements.map((item, index) => (
-                            <span key={index} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
+                            <span key={`emergency-achievement-${index}-${item}`} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
                               🎉 {item}
                             </span>
                           ))}
@@ -1093,11 +1204,13 @@ const MediaAttachmentCard = ({ media }: { media: MediaAttachment }) => {
 const UploadModal = ({ 
   onClose, 
   selectedDate, 
-  onSave 
+  onSave,
+  onRefresh
 }: { 
   onClose: () => void; 
   selectedDate: string | null;
   onSave: (entry: JournalEntry) => void;
+  onRefresh: () => void;
 }) => {
   const [mood, setMood] = useState<JournalEntry['mood']>('neutral');
   const [emotion, setEmotion] = useState<JournalEntry['emotion']>('calm');
@@ -1125,8 +1238,8 @@ const UploadModal = ({
     { emotion: 'comfort', emoji: '☁️', title: 'Comfort', description: 'Warmth & security' },
     { emotion: 'gratitude', emoji: '🙏', title: 'Gratitude', description: 'Thankfulness & appreciation' },
     { emotion: 'belonging', emoji: '🏡', title: 'Belonging', description: 'Acceptance & community' },
-    { emotion: 'sad', emoji: '😢', title: 'Sadness', description: 'Gentle sadness that needs care' },
-    { emotion: 'disappointed', emoji: '😞', title: 'Disappointment', description: 'Learning from setbacks' }
+    { emotion: 'sadness', emoji: '😢', title: 'Sadness', description: 'Gentle sadness that needs care' },
+    { emotion: 'disappointment', emoji: '😞', title: 'Disappointment', description: 'Learning from setbacks' }
   ];
 
   const handleMoodChange = (newMood: JournalEntry['mood']) => {
@@ -1173,26 +1286,88 @@ const UploadModal = ({
     setAchievementItems(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Use selectedDate if available, otherwise use today's date
     const saveDate = selectedDate || new Date().toISOString().split('T')[0];
     
     console.log('Saving memory entry:', { saveDate, mood, emotion, reflection });
     
-    // Create new journal entry
-    const newEntry: JournalEntry = {
+    // Get user_id from localStorage
+    const user_id = localStorage.getItem('user_id');
+    
+    if (!user_id) {
+      console.error('No user_id found in localStorage');
+      alert('Please log in to save your memory entry');
+      return;
+    }
+    
+    // Create emotion entry for S3
+    const emotionEntry = {
+      user_id: user_id,
       date: saveDate,
       mood,
       emotion,
       content: reflection,
+      title: '', // Add title field if needed
+      description: '', // Add description field if needed
+      location: '', // Add location field if needed
+      people: [], // Add people field if needed
+      tags: [], // Add tags field if needed
       gratitude: gratitudeItems.filter(item => item.trim()),
       achievements: achievementItems.filter(item => item.trim()),
-      mediaAttachments: uploadedMedia
+      mediaAttachments: uploadedMedia,
+      isFavorite: false
     };
+    
+    try {
+      console.log('Sending to S3:', emotionEntry);
+      
+      const response = await fetch('/api/emotions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emotionEntry),
+      });
+      
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        alert('Failed to save memory entry: ' + (errorData.message || 'Unknown error'));
+        return;
+      }
+      
+      const result = await response.json();
+      console.log('Success response:', result);
+      
+      // Create new journal entry for local state
+      const newEntry: JournalEntry = {
+        date: saveDate,
+        mood,
+        emotion,
+        content: reflection,
+        gratitude: gratitudeItems.filter(item => item.trim()),
+        achievements: achievementItems.filter(item => item.trim()),
+        mediaAttachments: uploadedMedia
+      };
 
-    // Call the onSave function passed from parent
-    onSave(newEntry);
-    onClose();
+      // Call the onSave function passed from parent to update local state
+      onSave(newEntry);
+      onClose();
+      
+      alert('Memory entry saved successfully!');
+      
+      // Refresh the journal entries from S3
+      setTimeout(() => {
+        onRefresh();
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error saving memory entry:', error);
+      alert('Failed to save memory entry. Please try again.');
+    }
   };
 
   return (
@@ -1365,7 +1540,7 @@ const UploadModal = ({
                 </button>
               </div>
               {gratitudeItems.filter(item => item).map((item, index) => (
-                <div key={index} className="flex items-center gap-2 bg-green-50 p-2 rounded-lg">
+                <div key={`modal-gratitude-${index}-${item}`} className="flex items-center gap-2 bg-green-50 p-2 rounded-lg">
                   <span className="text-green-600">💚</span>
                   <span className="flex-1 text-sm">{item}</span>
                   <button
@@ -1402,7 +1577,7 @@ const UploadModal = ({
                 </button>
               </div>
               {achievementItems.filter(item => item).map((item, index) => (
-                <div key={index} className="flex items-center gap-2 bg-blue-50 p-2 rounded-lg">
+                <div key={`modal-achievement-${index}-${item}`} className="flex items-center gap-2 bg-blue-50 p-2 rounded-lg">
                   <span className="text-blue-600">🎉</span>
                   <span className="flex-1 text-sm">{item}</span>
                   <button

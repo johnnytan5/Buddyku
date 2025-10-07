@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, validator
 import re
-from twilio_helper import TwilioHelper
+from core.twilio_helper import TwilioHelper
 
 # Create router
 router = APIRouter(prefix="/phone", tags=["phone"])

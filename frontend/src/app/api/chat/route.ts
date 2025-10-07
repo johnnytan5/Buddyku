@@ -18,7 +18,7 @@ export const runtime = 'edge'
 export async function POST(request: NextRequest) {
   try {
     const body: ChatRequest = await request.json()
-    
+
     if (!body.message?.trim()) {
       return NextResponse.json(
         { error: 'Message is required' },
@@ -54,12 +54,12 @@ export async function POST(request: NextRequest) {
       },
       status: 200,
     })
-    
+
   } catch (error) {
     console.error('Error in chat API route:', error)
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error'
       },
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  return NextResponse.json({ 
+  return NextResponse.json({
     message: 'Chat API is running',
     timestamp: new Date().toISOString()
   })

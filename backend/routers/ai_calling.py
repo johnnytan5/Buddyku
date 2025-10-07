@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, validator
 from typing import Optional, List, Dict, Any
 import logging
-from twilio_helper import TwilioHelper
+from core.twilio_helper import TwilioHelper
 import os
 import json
 from datetime import datetime

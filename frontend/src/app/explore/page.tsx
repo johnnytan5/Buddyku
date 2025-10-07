@@ -715,14 +715,18 @@ export default function ExplorePage() {
       setIsLoading(true);
       setHasError(false);
       
-      const response = await fetch('/api/fetch-all-emotions', {
-        method: 'POST',
+      // Get user_id from localStorage (set during login)
+      const user_id = localStorage.getItem('user_id');
+      
+      if (!user_id) {
+        throw new Error('No user session found');
+      }
+      
+      const response = await fetch(`/api/emotions?user_id=${user_id}`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          user_id: 'test_user_123'
-        })
       });
 
       if (!response.ok) {
@@ -828,21 +832,8 @@ export default function ExplorePage() {
     console.log('Jar memories count:', jarMemories.length);
     console.log('Jar memories:', jarMemories);
     
-    // Temporary test data to verify the view works
-    const testMemories: MemoryJarItem[] = [
-      {
-        id: 'test-1',
-        type: 'journal' as const,
-        content: 'This is a test memory to verify the jar view is working correctly.',
-        emotion: selectedJar.emotion,
-        date: '2024-09-20',
-        isFavorite: false,
-        sourceEntryId: 'test-entry'
-      }
-    ];
-    
-    // Use test memories if no real memories found
-    const displayMemories = jarMemories.length > 0 ? jarMemories : testMemories;
+    // Use real memories from S3
+    const displayMemories = jarMemories;
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
