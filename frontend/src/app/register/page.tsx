@@ -74,10 +74,20 @@ export default function RegisterPage() {
       }
 
       const result: RegisterResponse = await response.json();
-      
+
+      // Store user data in localStorage after successful registration
+      localStorage.setItem('user_id', result.user_id);
+      localStorage.setItem('name', formData.name);
+      localStorage.setItem('phone', formData.phone);
+      localStorage.setItem('emergency_contact_name', formData.emergency_contact_name || '');
+      localStorage.setItem('emergency_contact_phone', formData.emergency_contact_phone || '');
+
+      // Registration successful, redirect to avatar (skip login)
+      router.push('/avatar');
+
       // Registration successful, redirect to login
       router.push('/login?message=Registration successful! Please sign in.');
-      
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -96,14 +106,14 @@ export default function RegisterPage() {
             Create your account to get started
           </p>
         </div>
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {error}
             </div>
           )}
-          
+
           <div className="space-y-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">
@@ -152,7 +162,7 @@ export default function RegisterPage() {
                 placeholder="Enter your phone number"
               />
             </div>
-            
+
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password *
@@ -184,10 +194,10 @@ export default function RegisterPage() {
                 placeholder="Confirm your password"
               />
             </div>
-            
+
             <div className="border-t pt-4">
               <h3 className="text-sm font-medium text-gray-700 mb-3">Emergency Contact (Optional)</h3>
-              
+
               <div>
                 <label htmlFor="emergency_contact_name" className="block text-sm font-medium text-gray-700">
                   Emergency Contact Name
@@ -224,11 +234,10 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                loading 
-                  ? 'bg-gray-400 cursor-not-allowed' 
+              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${loading
+                  ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-              }`}
+                }`}
             >
               {loading ? 'Creating account...' : 'Create account'}
             </button>

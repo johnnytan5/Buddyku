@@ -32,7 +32,7 @@ const BreathingModal = dynamic(() => import('../modal1/page'), { ssr: false });
 
 export default function ChatbotPage() {
   const router = useRouter();
-  
+
   // Sample mood summary data (hardcoded fallback)
   const sampleMoodData: MoodSummaryData = {
     date: new Date().toISOString().split('T')[0],
@@ -70,25 +70,25 @@ export default function ChatbotPage() {
           const summaryData = await response.json();
           console.log('Generated mood summary:', summaryData);
           setMoodSummaryData(summaryData);
-          
+
           // Upload mood summary to S3 after generation
           await uploadMoodSummaryToS3(summaryData);
         } else {
           console.warn('Failed to generate mood summary, using fallback');
           console.warn('Response status:', response.status);
           // Keep using the existing sampleMoodData as fallback
-          
+
           // Still try to upload the fallback data
           await uploadMoodSummaryToS3(sampleMoodData);
         }
       } catch (error) {
         console.error('Error generating mood summary:', error);
         // Keep using the existing sampleMoodData as fallback
-        
+
         // Still try to upload the fallback data
         await uploadMoodSummaryToS3(sampleMoodData);
       }
-      
+
       // Show mood summary modal (either with generated or fallback data)
       setShowMoodSummary(true);
     }
@@ -98,10 +98,16 @@ export default function ChatbotPage() {
   const uploadMoodSummaryToS3 = async (summaryData: MoodSummaryData) => {
     setIsUploadingToS3(true);
     setUploadSuccess(null);
-    
+
     try {
-      const user_id = "test_user_123";
-      
+      const user_id = localStorage.getItem('user_id') || '';
+      if (!user_id) {
+        console.error('No user_id in localStorage. Make sure login stores it.');
+        setUploadSuccess(false);
+        setIsUploadingToS3(false);
+        return;
+      }
+
       const uploadData = {
         user_id: user_id,
         date: summaryData.date,
@@ -120,7 +126,7 @@ export default function ChatbotPage() {
       };
 
       console.log('Uploading mood summary to S3:', uploadData);
-      
+
       const response = await fetch('/api/upload-emotion', {
         method: 'POST',
         headers: {
@@ -133,21 +139,21 @@ export default function ChatbotPage() {
         const result = await response.json();
         console.log('Successfully uploaded mood summary to S3:', result);
         setUploadSuccess(true);
-        
+
         // Clear success message after 3 seconds
         setTimeout(() => setUploadSuccess(null), 3000);
       } else {
         const errorData = await response.json();
         console.error('Failed to upload mood summary:', errorData);
         setUploadSuccess(false);
-        
+
         // Clear error message after 5 seconds
         setTimeout(() => setUploadSuccess(null), 5000);
       }
     } catch (error) {
       console.error('Error uploading mood summary to S3:', error);
       setUploadSuccess(false);
-      
+
       // Clear error message after 5 seconds
       setTimeout(() => setUploadSuccess(null), 5000);
     } finally {
@@ -242,7 +248,7 @@ export default function ChatbotPage() {
         try {
           await speakText(messages[0].content);
           setWelcomeSpoken(true);
-          
+
           // Safety timeout to ensure UI is not stuck in speaking state
           setTimeout(() => {
             if (isSpeaking) {
@@ -250,7 +256,7 @@ export default function ChatbotPage() {
               setIsAvatarSpeaking(false);
             }
           }, 10000); // 10 second safety timeout
-          
+
         } catch (error) {
           console.error("Error speaking welcome message:", error);
           setWelcomeSpoken(true);
@@ -289,19 +295,19 @@ export default function ChatbotPage() {
 
   // Send message handler
   const handleSendMessage = async (message: string, fromSpeech = false) => {
-    console.log("handleSendMessage called", { 
-      message: message.substring(0, 50) + "...", 
-      fromSpeech, 
-      isLoading, 
+    console.log("handleSendMessage called", {
+      message: message.substring(0, 50) + "...",
+      fromSpeech,
+      isLoading,
       isAvatarSpeaking,
-      isSpeaking 
+      isSpeaking
     });
-    
+
     if (!message.trim()) {
       console.log("No message to send");
       return;
     }
-    
+
     setIsLoading(true);
     setMessages((prev) => [...prev, { role: "user", content: message }]);
     setInputMessage("");
@@ -315,29 +321,37 @@ export default function ChatbotPage() {
       });
       if (suicideRes.ok) {
         const risk = await suicideRes.json();
-        console.log("[Suicide Risk]", { message, ...risk });
-        
-        // Check for very high risk and trigger AI call
-        if (risk.risk_level === "very-high" || risk.risk_score >= 0.9) {
-          console.log("VERY HIGH SUICIDE RISK DETECTED - Initiating emergency AI call");
-          
+        console.log("[Suicide Risk]", { message, score: risk.score });
+
+        // Check for high risk (score >= 6, since your backend rates 1-10)
+        if (risk.score >= 6) {  // Changed from risk.risk_level === "very-high" || risk.risk_score >= 0.9
+          console.log("HIGH SUICIDE RISK DETECTED - Initiating emergency AI call");
+
           // Trigger AI calling endpoint
           try {
+            const requestData = {
+              to_number: localStorage.getItem('phone') || "+601137115388",
+              name: localStorage.getItem('name') || "Johnny",
+              emergency_number: localStorage.getItem('emergency_contact_phone') || "+60164489091",
+              emergency_contact_name: localStorage.getItem('emergency_contact_name') || "Shawn",
+              context: message,
+              user_id: localStorage.getItem('user_id') || "test_user_123",
+              custom_prompt: "This is an emergency call. The user has expressed suicidal thoughts and needs immediate support and crisis intervention.",
+              initial_mood: "crisis"
+            };
+            
+            console.log("Full request data:", requestData);
+            
             const callResponse = await fetch("/api/initiate-call", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                to_number: "+1234567890", // Replace with user's actual phone number
-                user_id: "test_user_123", // Replace with actual user ID
-                initial_mood: "crisis",
-                custom_prompt: "This is an emergency call. The user has expressed suicidal thoughts and needs immediate support and crisis intervention."
-              }),
+              body: JSON.stringify(requestData),
             });
-            
+
             if (callResponse.ok) {
               const callResult = await callResponse.json();
               console.log("Emergency AI call initiated successfully:", callResult);
-              
+
               // Show emergency message to user
               setMessages((prev) => [
                 ...prev,
@@ -355,13 +369,7 @@ export default function ChatbotPage() {
           }
         }
       } else {
-        const fallbackRes = await fetch("http://13.229.59.23/predict-text", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message }),
-        });
-        const fallbackRisk = await fallbackRes.json();
-        console.warn("[Suicide Risk] Detection failed, fallback result:", fallbackRisk);
+        console.error("[Suicide Risk] Detection failed:", suicideRes.status, suicideRes.statusText);
       }
     } catch (err) {
       console.warn("[Suicide Risk] Detection error:", err);
@@ -386,11 +394,11 @@ export default function ChatbotPage() {
     try {
       // Filter out the initial assistant welcome message from history
       // Only include messages after the first welcome message
-      const messageHistoryForAPI = messages.length > 1 
+      const messageHistoryForAPI = messages.length > 1
         ? messages.slice(1).map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-          }))
+          role: msg.role,
+          content: msg.content,
+        }))
         : [];
 
       const res = await fetch("/api/chat", {
@@ -575,16 +583,14 @@ export default function ChatbotPage() {
         {messages.map((msg, idx) => (
           <div
             key={idx}
-            className={`my-2 flex ${
-              msg.role === "user" ? "justify-end" : "justify-start"
-            }`}
+            className={`my-2 flex ${msg.role === "user" ? "justify-end" : "justify-start"
+              }`}
           >
             <div
-              className={`rounded-lg px-4 py-2 max-w-xs ${
-                msg.role === "user"
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-100 text-gray-800"
-              }`}
+              className={`rounded-lg px-4 py-2 max-w-xs ${msg.role === "user"
+                ? "bg-blue-500 text-white"
+                : "bg-gray-100 text-gray-800"
+                }`}
             >
               {msg.breathingSuggestion ? (
                 <div>
@@ -633,57 +639,57 @@ export default function ChatbotPage() {
               onClick={async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 console.log("Microphone button clicked");
-                
+
                 // Check if we're in a secure context
                 if (!window.isSecureContext) {
                   alert("Microphone access requires a secure connection (HTTPS). Please access this site via HTTPS or localhost.");
                   return;
                 }
-                
-                console.log("Current state:", { 
-                  microphonePermission, 
-                  avatarReady, 
-                  isListening, 
-                  isSpeaking, 
-                  isLoading, 
-                  isProcessing 
+
+                console.log("Current state:", {
+                  microphonePermission,
+                  avatarReady,
+                  isListening,
+                  isSpeaking,
+                  isLoading,
+                  isProcessing
                 });
-                
+
                 // Always request permission on first click or if permission was denied/unknown
                 if (microphonePermission !== "granted") {
                   console.log("Requesting microphone permission...");
-                  
+
                   // Set to pending state immediately
                   setMicrophonePermission('pending');
-                  
+
                   try {
                     // This MUST trigger the browser's native permission dialog
                     console.log('Calling getUserMedia...');
-                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                    const stream = await navigator.mediaDevices.getUserMedia({
                       audio: {
                         echoCancellation: true,
                         noiseSuppression: true,
                         autoGainControl: true
                       }
                     });
-                    
+
                     console.log('✅ Microphone permission granted!');
                     setMicrophonePermission('granted');
-                    
+
                     // Clean up the stream
                     stream.getTracks().forEach(track => {
                       track.stop();
                       console.log('Track stopped:', track.kind);
                     });
-                    
+
                     // Now start listening since we have permission
                     if (avatarReady && !isListening && !isSpeaking && !isLoading && !isProcessing) {
                       console.log("Starting listening after permission granted...");
                       setTimeout(() => startListening(), 100); // Small delay to ensure state is updated
                     }
-                    
+
                   } catch (error: any) {
                     console.error('❌ Microphone permission error:', error);
                     setMicrophonePermission('denied');
@@ -712,23 +718,22 @@ export default function ChatbotPage() {
                 isProcessing ||
                 microphonePermission === "pending"
               }
-              className={`p-3 mb-2 rounded-full transition-all duration-200 transform hover:scale-105 ${
-                isListening
-                  ? 'bg-red-500 text-white animate-pulse'
-                  : avatarReady && microphonePermission !== "denied"
+              className={`p-3 mb-2 rounded-full transition-all duration-200 transform hover:scale-105 ${isListening
+                ? 'bg-red-500 text-white animate-pulse'
+                : avatarReady && microphonePermission !== "denied"
                   ? 'text-gray-600 hover:text-green-600 hover:bg-green-50'
                   : 'text-gray-300 cursor-not-allowed'
-              }`}
+                }`}
               title={
                 microphonePermission === "denied"
                   ? "Microphone permission denied - click to retry"
                   : microphonePermission === "pending"
-                  ? "Requesting microphone permission..."
-                  : !avatarReady
-                  ? "Avatar not ready"
-                  : isListening
-                  ? "Listening..."
-                  : "Click to start voice input"
+                    ? "Requesting microphone permission..."
+                    : !avatarReady
+                      ? "Avatar not ready"
+                      : isListening
+                        ? "Listening..."
+                        : "Click to start voice input"
               }
             >
               <Mic className="w-5 h-5" />
@@ -748,24 +753,24 @@ export default function ChatbotPage() {
             <button
               onClick={(e) => {
                 e.preventDefault();
-                console.log("Send button clicked", { 
-                  hasMessage: !!inputMessage.trim(), 
-                  isLoading, 
+                console.log("Send button clicked", {
+                  hasMessage: !!inputMessage.trim(),
+                  isLoading,
                   isAvatarSpeaking,
-                  isSpeaking 
+                  isSpeaking
                 });
                 handleSendMessage(inputMessage);
               }}
               disabled={!inputMessage.trim() || isLoading || isAvatarSpeaking}
               className="p-3 mb-2 gradient-primary text-black rounded-full hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
               title={
-                !inputMessage.trim() 
-                  ? "Enter a message" 
-                  : isLoading 
-                  ? "Loading..." 
-                  : isAvatarSpeaking 
-                  ? "Avatar is speaking..." 
-                  : "Send message"
+                !inputMessage.trim()
+                  ? "Enter a message"
+                  : isLoading
+                    ? "Loading..."
+                    : isAvatarSpeaking
+                      ? "Avatar is speaking..."
+                      : "Send message"
               }
             >
               <Send className="w-5 h-5" />
@@ -796,7 +801,7 @@ export default function ChatbotPage() {
       )}
 
       {/* Mood Summary Modal */}
-      <MoodSummaryModal 
+      <MoodSummaryModal
         isOpen={showMoodSummary}
         onClose={handleMoodSummaryClose}
         onEndConversation={handleEndConversation}

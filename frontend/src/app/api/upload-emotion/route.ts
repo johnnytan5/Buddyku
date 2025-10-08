@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
-    const backendUrl = `${baseUrl}/uploadEmotionsS3`
+    const backendUrl = `${baseUrl}/api/uploadEmotionsS3`
 
     console.log('Uploading emotion data to backend:', body)
 

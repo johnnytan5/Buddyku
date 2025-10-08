@@ -16,15 +16,26 @@ router = APIRouter(prefix="/ai-calling", tags=["ai_calling"])
 # Pydantic models
 class AICallRequest(BaseModel):
     to_number: str
-    user_id: Optional[str] = None
+    name: str
+    emergency_number: str
+    emergency_contact_name: str
+    context: str
+    custom_prompt: str
+    user_id: str
     initial_mood: Optional[str] = None
-    custom_prompt: Optional[str] = None
     
     @validator('to_number')
     def validate_phone_number(cls, v):
         import re
         if not re.match(r'^\+[1-9]\d{1,14}$', v):
             raise ValueError('Phone number must be in E.164 format (e.g., +1234567890)')
+        return v
+    
+    @validator('emergency_number')
+    def validate_emergency_phone_number(cls, v):
+        import re
+        if not re.match(r'^\+[1-9]\d{1,14}$', v):
+            raise ValueError('Emergency phone number must be in E.164 format (e.g., +1234567890)')
         return v
 
 class AICallResponse(BaseModel):
@@ -72,7 +83,7 @@ async def initiate_ai_call(
         webhook_url = f"{backend_url}/voice/webhook/answer"
         
         # Add user context to webhook URL if provided
-        if request.user_id or request.initial_mood or request.custom_prompt:
+        if any([request.initial_mood, request.custom_prompt, request.name, request.emergency_number, request.emergency_contact_name, request.context]):
             params = {}
             if request.user_id:
                 params["user_id"] = request.user_id
@@ -80,12 +91,20 @@ async def initiate_ai_call(
                 params["mood"] = request.initial_mood
             if request.custom_prompt:
                 params["custom_prompt"] = request.custom_prompt
+            if request.name:
+                params["name"] = request.name
+            if request.emergency_number:
+                params["emergency_number"] = request.emergency_number
+            if request.emergency_contact_name:
+                params["emergency_contact_name"] = request.emergency_contact_name
+            if request.context:
+                params["context"] = request.context
             
             if params:
                 from urllib.parse import urlencode
                 webhook_url += "?" + urlencode(params)
         
-        logger.info(f"Making outbound AI call to {request.to_number} with webhook: {webhook_url}")
+        logger.info(f"Making outbound AI call to {request.to_number} (Name: {request.name}) with webhook: {webhook_url}")
         
         # Make the outbound call using Twilio
         result = twilio.make_phone_call(
@@ -98,8 +117,12 @@ async def initiate_ai_call(
             call_metadata = {
                 "call_sid": result["call_sid"],
                 "user_id": request.user_id,
-                "initial_mood": request.initial_mood,
+                "name": request.name,
+                "emergency_number": request.emergency_number,
+                "emergency_contact_name": request.emergency_contact_name,
+                "context": request.context,
                 "custom_prompt": request.custom_prompt,
+                "initial_mood": request.initial_mood,
                 "start_time": datetime.now().isoformat(),
                 "webhook_url": webhook_url,
                 "call_type": "outbound_ai_call"
@@ -114,7 +137,7 @@ async def initiate_ai_call(
                 status=result["status"],
                 to=result["to"],
                 from_number=result["from"],
-                message="Outbound AI call initiated - Ruby will call the user shortly",
+                message=f"Outbound AI call initiated for {request.name} - Ruby will call shortly",
                 webhook_url=webhook_url
             )
         else:

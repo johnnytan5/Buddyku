@@ -5,8 +5,7 @@ interface SuicideDetectionRequest {
 }
 
 interface SuicideDetectionResponse {
-	risk_level: string
-	risk_score: number
+	score: number 
 }
 
 export const runtime = 'edge'

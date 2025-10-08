@@ -34,30 +34,38 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
-
+  
     try {
-      const response = await fetch('http://localhost:8000/api/login', {
+      const response = await fetch('/api/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-
+  
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Login failed');
+        // Try to parse JSON error; fall back to text
+        let message = 'Login failed';
+        try {
+          const err = await response.json();
+          message = err?.detail || err?.message || message;
+        } catch {
+          const text = await response.text();
+          if (text) message = text;
+        }
+        throw new Error(message);
       }
-
+  
       const userData: LoginResponse = await response.json();
-      
-      // Store user data in localStorage
+  
+      // Persist session
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('user_id', userData.user_id);
-      
-      // Redirect to main app
+      localStorage.setItem('name', userData.name);
+      localStorage.setItem('phone', userData.phone);
+      localStorage.setItem('emergency_contact_name', userData.emergency_contact_name || '');
+      localStorage.setItem('emergency_contact_phone', userData.emergency_contact_phone || '');
+  
       router.push('/avatar');
-      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

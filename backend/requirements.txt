@@ -1,1 +1,13 @@
-# Combined requirements.txt
+fastapi
+uvicorn[standard]
+gunicorn
+python-dotenv
+boto3
+botocore
+requests
+twilio
+pydantic>=2
+python-multipart
+tensorflow
+numpy
+opencv-python-headless

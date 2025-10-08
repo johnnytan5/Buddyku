@@ -432,7 +432,7 @@ async def register_user(user_data: UserRegistration):
             'emergency_contact_name': user_data.emergency_contact_name,
             'emergency_contact_phone': user_data.emergency_contact_phone,
             'created_at': timestamp,
-            'last_login': None
+            'last_login': None,
         }
         
         print(f"Storing user item: {user_item}")

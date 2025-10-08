@@ -3,6 +3,8 @@ version: '3.8'
 
 services:
   backend:
+    env_file:
+      - ./backend/.env
     build: ./backend
     ports:
       - "8000:8000"
@@ -10,7 +12,7 @@ services:
       - PYTHONPATH=/app
       - NODE_ENV=production
       - DOCKER_CONTAINER=true
-      - BACKEND_URL=https://5de71359c4a7.ngrok-free.app
+      - BACKEND_URL=http://backend:8000
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -26,6 +28,8 @@ services:
           memory: 4G
 
   frontend:
+    env_file:
+        - ./frontend/.env
     build: ./frontend
     ports:
       - "3000:3000"
