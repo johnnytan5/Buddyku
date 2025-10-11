@@ -10,6 +10,24 @@ import {
   getAllJournalEntries
 } from '@/lib/memoryData';
 
+// Helper function to safely format dates
+const formatDate = (dateString: string, options: Intl.DateTimeFormatOptions) => {
+  // Debug logging
+  console.log('formatDate called with:', dateString, 'type:', typeof dateString);
+  
+  if (!dateString || dateString === 'undefined' || dateString === 'null') {
+    console.log('Invalid dateString:', dateString);
+    return 'No Date';
+  }
+  
+  const date = new Date(dateString);
+  const isValid = !isNaN(date.getTime());
+  
+  console.log('Parsed date:', date, 'isValid:', isValid);
+  
+  return isValid ? date.toLocaleDateString('en-US', options) : 'No Date';
+};
+
 interface EmotionJarConfig {
   emotion: 'joy' | 'hope' | 'love' | 'calm' | 'strength' | 'comfort' | 'gratitude' | 'belonging' | 'sadness' | 'disappointment';
   name: string;
@@ -376,7 +394,12 @@ const MemoryCarousel = ({
               transform: `translateX(-${currentIndex * 100}%)`
             }}
           >
-            {memories.map((memory, index) => (
+            {memories.map((memory, index) => {
+              // Debug logging for memory data
+              console.log('Memory data:', memory);
+              console.log('Memory date:', memory.date, 'type:', typeof memory.date);
+              
+              return (
               <div key={memory.id} className="w-full flex-shrink-0 p-6 flex flex-col justify-center">
                 {/* Memory Card */}
                 <div className="bg-white/80 backdrop-blur-sm rounded-xl p-5 shadow-sm border-l-4"
@@ -399,7 +422,7 @@ const MemoryCarousel = ({
                       )}
                     </div>
                     <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
-                      {new Date(memory.date).toLocaleDateString('en-US', { 
+                      {formatDate(memory.date, { 
                         month: 'short', 
                         day: 'numeric' 
                       })}
@@ -438,14 +461,15 @@ const MemoryCarousel = ({
                   {/* Memory Footer */}
                   <div className="flex items-center justify-center text-sm">
                     <span className="text-gray-500 flex items-center gap-1">
-                      📅 {new Date(memory.date).toLocaleDateString('en-US', { 
+                      📅 {formatDate(memory.date, { 
                         weekday: 'long'
                       })}
                     </span>
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -595,7 +619,7 @@ const RandomMemoryPopup = ({
               )}
               <div className="ml-auto">
                 <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
-                  {new Date(memory.date).toLocaleDateString('en-US', { 
+                  {formatDate(memory.date, { 
                     month: 'short', 
                     day: 'numeric',
                     year: 'numeric'
@@ -639,7 +663,7 @@ const RandomMemoryPopup = ({
             <div className="text-sm text-gray-500 flex items-center gap-2">
               <span>📅</span>
               <span>
-                {new Date(memory.date).toLocaleDateString('en-US', { 
+                {formatDate(memory.date, { 
                   weekday: 'long',
                   month: 'long',
                   day: 'numeric'

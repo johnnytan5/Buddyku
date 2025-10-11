@@ -107,7 +107,7 @@ export let journalEntriesData: Record<string, JournalEntry> = {
   '2025-09-01': {
     date: '2025-09-01',
     mood: 'very-sad',
-    emotion: 'sad',
+    emotion: 'sadness',
     content: 'Woke up feeling really down. Missed my family a lot today and felt isolated at work.',
     gratitude: ['A friend checked in on me'],
     achievements: ['Got out of bed', 'Went to work despite feeling low'],
@@ -117,7 +117,7 @@ export let journalEntriesData: Record<string, JournalEntry> = {
   '2025-09-02': {
     date: '2025-09-02',
     mood: 'sad',
-    emotion: 'sad',
+    emotion: 'sadness',
     content: 'Had a tough conversation with my manager. Felt misunderstood and a bit hopeless.',
     gratitude: ['Supportive coworker'],
     achievements: ['Expressed my feelings', 'Did not give up'],
@@ -137,7 +137,7 @@ export let journalEntriesData: Record<string, JournalEntry> = {
   '2025-09-04': {
     date: '2025-09-04',
     mood: 'sad',
-    emotion: 'sad',
+    emotion: 'sadness',
     content: 'Felt lonely after coming home. Watched a sad movie and cried a little.',
     gratitude: ['Warm blanket'],
     achievements: ['Allowed myself to feel'],
@@ -157,7 +157,7 @@ export let journalEntriesData: Record<string, JournalEntry> = {
   '2025-09-06': {
     date: '2025-09-06',
     mood: 'very-sad',
-    emotion: 'disappointed',
+    emotion: 'disappointment',
     content: 'Received some bad news from home. Felt powerless and deeply sad.',
     gratitude: ['A call from my sibling'],
     achievements: ['Did not isolate myself'],
@@ -167,7 +167,7 @@ export let journalEntriesData: Record<string, JournalEntry> = {
   '2025-09-07': {
     date: '2025-09-07',
     mood: 'sad',
-    emotion: 'sad',
+    emotion: 'sadness',
     content: 'Rainy day. Stayed in bed most of the time. Felt unmotivated.',
     gratitude: ['A good book'],
     achievements: ['Read a chapter'],
@@ -177,7 +177,7 @@ export let journalEntriesData: Record<string, JournalEntry> = {
   '2025-09-09': {
     date: '2025-09-09',
     mood: 'very-sad',
-    emotion: 'disappointed',
+    emotion: 'disappointment',
     content: 'Had an argument with a close friend. Felt regretful and anxious.',
     gratitude: ['Friendship is worth fighting for'],
     achievements: ['Apologized sincerely'],
@@ -216,7 +216,7 @@ export let journalEntriesData: Record<string, JournalEntry> = {
   '2025-09-11': {
     date: '2025-09-11',
     mood: 'sad',
-    emotion: 'sad',
+    emotion: 'sadness',
     content: 'Struggled to focus at work. Felt like I was falling behind.',
     gratitude: ['Understanding boss'],
     achievements: ['Asked for help'],
@@ -338,13 +338,16 @@ export const transformEntryToMemories = (entry: JournalEntry, date: string): Mem
   const mainTitle = entry.title || `Memory from ${date}`;
   const mainDescription = entry.description || entry.content;
   
+  // Debug logging for date transformation
+  console.log('transformEntryToMemories - input date:', date, 'entry.date:', entry.date);
+  
   memories.push({
     id: `journal-${date}`,
     type: 'journal',
     content: entry.content,
     description: mainDescription,
     emotion: emotion,
-    date,
+    date: entry.date || date, // Use entry.date if available, otherwise use the key
     isFavorite: entry.isFavorite || false,
     sourceEntryId: date,
     location: entry.location,
