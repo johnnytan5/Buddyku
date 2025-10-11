@@ -12,7 +12,7 @@ services:
       - PYTHONPATH=/app
       - NODE_ENV=production
       - DOCKER_CONTAINER=true
-      - BACKEND_URL=http://backend:8000
+      - BACKEND_URL=https://4f2154012c64.ngrok-free.app
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]

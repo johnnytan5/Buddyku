@@ -30,13 +30,21 @@ export default function VideoCallPage() {
     const [riskScore, setRiskScore] = useState<number | null>(null);
     const [mood, setMood] = useState<string | null>(null);
     const [pendingLLMResponse, setPendingLLMResponse] = useState<string | null>(null);
+    const [initialMessageShown, setInitialMessageShown] = useState(false);
+    const [moodDetectionActive, setMoodDetectionActive] = useState(true);
     const [isSupportiveSpeaking, setIsSupportiveSpeaking] = useState(false);
 
 
     // Periodically capture webcam image and send to mood endpoint
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
+        
         async function sendFrame() {
+            // Only run if mood detection is still active and initial message hasn't been shown
+            if (!moodDetectionActive || initialMessageShown) {
+                return;
+            }
+            
             if (videoRef.current && videoRef.current.readyState >= 2) {
                 const blob = await captureFrameAsJpeg(videoRef.current);
                 if (blob) {
@@ -44,6 +52,7 @@ export default function VideoCallPage() {
                     const formData = new FormData();
                     formData.append('file', blob, 'frame.jpg');
                     let success = false;
+                    
                     // Try primary endpoint
                     try {
                         const resp = await fetch('http://13.229.59.23/predict-mood', {
@@ -63,6 +72,7 @@ export default function VideoCallPage() {
                     } catch (err) {
                         // Ignore error, will try fallback
                     }
+                    
                     // Fallback to backend if primary fails
                     if (!success) {
                         try {
@@ -87,9 +97,16 @@ export default function VideoCallPage() {
                 }
             }
         }
-        interval = setInterval(sendFrame, 10000); // every 10 seconds
-        return () => { if (interval) clearInterval(interval); };
-    }, []);
+        
+        // Only start interval if mood detection is active
+        if (moodDetectionActive) {
+            interval = setInterval(sendFrame, 10000); // every 10 seconds
+        }
+        
+        return () => { 
+            if (interval) clearInterval(interval); 
+        };
+    }, [moodDetectionActive, initialMessageShown]); // Add dependencies
 
     // Azure Avatar integration
     const {
@@ -181,27 +198,36 @@ export default function VideoCallPage() {
 
     // Handle mood-based supportive messages
     const handleMoodResponse = useCallback((detectedMood: string) => {
-        if (['sad', 'very-sad'].includes(detectedMood)) {
-            setIsSupportiveSpeaking(true);
-            speakText("Hi Johnny, I see you're feeling sad. It's okay to have tough days. Want to tell me what's on your mind?").then(() => {
-                setIsSupportiveSpeaking(false);
-                if (pendingLLMResponse) {
-                    speakText(pendingLLMResponse);
-                    setPendingLLMResponse(null);
-                }
-            });
+        // Show initial mood-based message only once
+        if (!initialMessageShown && detectedMood) {
+            let initialMessage = "";
+            
+            if (detectedMood === "Negative") {
+                initialMessage = "Hi! I'm Ruby, and I can see you now. I notice you look sad. I'm here to listen and support you. What's been on your mind lately?";
+            } else if (detectedMood === "Positive") {
+                initialMessage = "Hi! I'm Ruby, and I can see you now. You look like you're in good spirits today! I'd love to hear what's been going well for you.";
+            } else {
+                initialMessage = "Hi! I'm Ruby, and I can see you now. How are you feeling today?";
+            }
+            
+            // Add the initial message to chat
+            setMessages([{
+                role: "assistant",
+                content: initialMessage
+            }]);
+            
+            // Speak the initial message
+            setTimeout(() => {
+                speakText(initialMessage);
+            }, 1000);
+            
+            setInitialMessageShown(true);
+            setMoodDetectionActive(false);
         }
-        if (['happy', 'very-happy'].includes(detectedMood)) {
-            setIsSupportiveSpeaking(true);
-            speakText("Hi Johnny, I see you're feeling happy! Want to share what's been going well for you?").then(() => {
-                setIsSupportiveSpeaking(false);
-                if (pendingLLMResponse) {
-                    speakText(pendingLLMResponse);
-                    setPendingLLMResponse(null);
-                }
-            });
-        }
-    }, [speakText, pendingLLMResponse]);
+        
+        // Remove the old mood-based supportive messages - they only happen once now
+        // (Delete lines 185-204)
+    }, [speakText, pendingLLMResponse, initialMessageShown]);
 
     useEffect(() => {
         const getMedia = async () => {

@@ -99,16 +99,32 @@ async def chat(request: ChatRequest):
             raise HTTPException(status_code=400, detail="No message provided.")
 
         # Prepare the messages for the new 'messages' API format
-        messages_list = [
-            {"role": msg.role, "content": [{"text": msg.content}]}
-            for msg in message_history
-        ]
+        # Prepare the messages for the new 'messages' API format
+        # Prepare the messages for the new 'messages' API format
+        messages_list = []
+
+        # Add message history, ensuring we start with user message
+        for msg in message_history:
+            messages_list.append({"role": msg.role, "content": [{"text": msg.content}]})
+
+        # Always end with the current user message
         messages_list.append({"role": "user", "content": [{"text": user_message}]})
 
-        # Inject risk_score and mood into the system prompt if available
+        # Ensure we start with user message (remove first assistant if needed)
+        if messages_list and messages_list[0]["role"] == "assistant":
+            messages_list.pop(0)  # Remove the first assistant message
+
+        
+        # Start with base system prompt
         system_prompt = SYSTEM_PROMPT
+
+        # Add custom prompt if provided
+        if request.custom_prompt:
+            system_prompt = request.custom_prompt + "\n\n" + system_prompt
+
+        # Inject risk_score and mood into the system prompt if available
         if risk_score is not None or mood is not None:
-            system_prompt = SYSTEM_PROMPT + "\n\n" + (
+            system_prompt = system_prompt + "\n\n" + (  # ← Use existing system_prompt, not SYSTEM_PROMPT
                 f"[Current User Mood: {mood if mood is not None else 'Unknown'} | Risk Score: {risk_score if risk_score is not None else 'Unknown'}]"
             )
 

@@ -12,6 +12,7 @@ class ChatRequest(BaseModel):
     message_history: Optional[List[Message]] = None
     mood: Optional[str] = None
     risk_score: Optional[float] = None
+    custom_prompt: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
