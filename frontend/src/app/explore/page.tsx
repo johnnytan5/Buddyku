@@ -369,7 +369,7 @@ const MemoryCarousel = ({
         </div>
 
         {/* Memory Content with smooth transition */}
-        <div className="relative h-80 overflow-hidden">
+        <div className="relative min-h-80 max-h-96 overflow-hidden">
           <div 
             className="flex transition-transform duration-700 ease-out h-full"
             style={{
@@ -407,8 +407,8 @@ const MemoryCarousel = ({
                   </div>
 
                   {/* Memory Content */}
-                  <div className="mb-4">
-                    <p className="text-gray-800 leading-relaxed text-lg font-medium">{memory.content}</p>
+                  <div className="mb-4 max-h-48 overflow-y-auto">
+                    <p className="text-gray-800 leading-relaxed text-lg font-medium whitespace-pre-wrap">{memory.content}</p>
                   </div>
 
                   {/* Media Preview */}
@@ -605,8 +605,8 @@ const RandomMemoryPopup = ({
             </div>
 
             {/* Memory Text */}
-            <div className="mb-4">
-              <p className="text-gray-800 leading-relaxed text-lg font-medium">
+            <div className="mb-4 max-h-56 overflow-y-auto">
+              <p className="text-gray-800 leading-relaxed text-lg font-medium whitespace-pre-wrap">
                 {memory.content}
               </p>
             </div>

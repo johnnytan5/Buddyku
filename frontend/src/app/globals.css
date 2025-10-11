@@ -122,5 +122,29 @@
 }
 
 .gradient-primary {
-  background: linear-gradient(135deg, oklch(0.8 0.06 320) 0%, oklch(0.75 0.08 300) 50%, oklch(0.7 0.15 280) 100%);
+  background: linear-gradient(
+    135deg,
+    oklch(0.8 0.06 320) 0%,
+    oklch(0.75 0.08 300) 50%,
+    oklch(0.7 0.15 280) 100%
+  );
+}
+
+/* Custom scrollbar styles for memory entries */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5);
 }

@@ -470,7 +470,9 @@ export default function MemoryPage() {
                 {/* Journal Content */}
                 <div>
                   <h4 className="font-medium text-gray-700 mb-2">Reflection:</h4>
-                  <p className="text-gray-600 bg-gray-50 p-3 rounded-lg leading-relaxed">{currentEntry.content}</p>
+                  <div className="bg-gray-50 p-3 rounded-lg max-h-60 overflow-y-auto">
+                    <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{currentEntry.content}</p>
+                  </div>
                 </div>
 
                 {/* Emotion Display */}
@@ -734,7 +736,7 @@ const EmergencyMemoryKit = ({
 
             {/* Memory Content */}
             {currentMemory && (
-              <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
+              <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 max-h-96 overflow-y-auto">
                 {/* Date Header */}
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-base sm:text-lg font-semibold text-gray-800">
@@ -764,9 +766,11 @@ const EmergencyMemoryKit = ({
                   <div className="space-y-4">
                     <div>
                       <h4 className="font-medium text-gray-700 mb-2">Your reflection:</h4>
-                      <p className="text-gray-600 bg-white/60 p-4 rounded-lg leading-relaxed">
-                        {currentMemory.content}
-                      </p>
+                      <div className="bg-white/60 p-4 rounded-lg max-h-40 overflow-y-auto">
+                        <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
+                          {currentMemory.content}
+                        </p>
+                      </div>
                     </div>
                     
                     {/* Emotion Display for Emergency Kit */}
