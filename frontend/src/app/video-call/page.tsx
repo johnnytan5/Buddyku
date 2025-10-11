@@ -55,7 +55,7 @@ export default function VideoCallPage() {
                     
                     // Try primary endpoint
                     try {
-                        const resp = await fetch('http://13.229.59.23/predict-mood', {
+                        const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/mood-detection`, {
                             method: 'POST',
                             body: formData
                         });
