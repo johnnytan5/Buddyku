@@ -12,9 +12,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare the backend URL
-    const backendUrl = process.env.NODE_ENV === 'development'
-      ? 'http://127.0.0.1:8000/api/mood-detection'
-      : (process.env.FASTAPI_BACKEND_URL?.replace(/\/?$/, '') + '/api/mood-detection' || 'http://127.0.0.1:8000/api/mood-detection')
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+    const backendUrl = `${baseUrl}/api/mood-detection`
 
     // Forward the file to the backend as multipart/form-data
     const backendForm = new FormData()
